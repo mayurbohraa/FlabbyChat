@@ -1,0 +1,467 @@
+import React from "react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+  cleanup,
+} from "@testing-library/react";
+import { beforeEach, afterEach, it, expect, vi } from "vitest";
+import Chat from "../components/Chat.jsx";
+import Profile from "../components/Profile.jsx";
+import NotificationDropdown from "../components/NotificationDropdown.jsx";
+import * as cloud from "../services/cloud.js";
+import { demoUser, loadDemo, saveDemo } from "../utils/chat-data.js";
+vi.mock("../services/cloud.js", () => ({
+  configured: false,
+  saveProfile: vi.fn(),
+  changePassword: vi.fn(),
+}));
+vi.mock("../services/calls.js", () => ({
+  watchIncoming: () => () => {},
+  createCall: vi.fn(),
+}));
+beforeEach(() => {
+  localStorage.clear();
+  HTMLDialogElement.prototype.showModal = function () {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function () {
+    this.open = false;
+  };
+});
+afterEach(cleanup);
+function start() {
+  render(<Chat user={demoUser} demo onLogout={() => {}} />);
+}
+function nav(name) {
+  fireEvent.click(
+    within(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    ).getByRole("button", {
+      name:
+        {
+          Workspaces: "Projects",
+          Discussions: "Board",
+          Storage: "Files",
+          Notifications: "Alerts",
+        }[name] || name,
+    }),
+  );
+}
+async function team() {
+  nav("Teams");
+  fireEvent.click(screen.getByRole("button", { name: "Create team" }));
+  fireEvent.change(screen.getByLabelText("Name"), {
+    target: { value: "College group" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+}
+it("creates a team, assigns a task, and persists status changes", async () => {
+  start();
+  await team();
+  nav("Tasks");
+  fireEvent.click(screen.getByRole("button", { name: "New task" }));
+  fireEvent.change(screen.getByLabelText("Title"), {
+    target: { value: "Finish the report" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  expect(await screen.findByText("Finish the report")).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Status for Finish the report"), {
+    target: { value: "Done" },
+  });
+  await waitFor(() =>
+    expect(
+      Object.values(Object.values(loadDemo().teams)[0].tasks)[0].status,
+    ).toBe("Done"),
+  );
+});
+it("adds a registered user to a team", async () => {
+  start();
+  await team();
+  fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
+  fireEvent.change(screen.getByLabelText("Registered user"), {
+    target: { value: "hardik" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  await waitFor(() =>
+    expect(Object.values(loadDemo().teams)[0].members.hardik.name).toBe(
+      "Hardik Maheshwari",
+    ),
+  );
+});
+it("keeps discussion replies in their topic", async () => {
+  start();
+  await team();
+  nav("Discussions");
+  fireEvent.click(screen.getByRole("button", { name: "New post" }));
+  fireEvent.change(screen.getByLabelText("Title"), {
+    target: { value: "Project review" },
+  });
+  fireEvent.change(screen.getByLabelText("Discussion"), {
+    target: { value: "Review our implementation." },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  expect(await screen.findByText("Project review")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /^Project review/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Write a reply" }));
+  fireEvent.change(screen.getByLabelText("Your reply"), {
+    target: { value: "I will check the tests." },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  expect(
+    await screen.findByText("I will check the tests."),
+  ).toBeInTheDocument();
+});
+it("uploads to a personal library and explicitly shares the file into a chosen conversation", async () => {
+  start();
+  nav("Storage");
+  fireEvent.change(screen.getByLabelText("Upload library file"), {
+    target: {
+      files: [
+        new File(["%PDF test"], "notes.pdf", { type: "application/pdf" }),
+      ],
+    },
+  });
+  expect(await screen.findByText("notes.pdf")).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Share notes.pdf in chat"));
+  fireEvent.change(screen.getByLabelText("Conversation"), {
+    target: { value: "dm-hardik--mayur" },
+  });
+  fireEvent.click(
+    screen.getByRole("button", { name: "Attach to conversation" }),
+  );
+  expect(screen.getByLabelText("Message")).toHaveValue("");
+  expect(screen.getByText("notes.pdf")).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Send message"));
+  expect(
+    await screen.findByRole("button", { name: "Preview notes.pdf" }),
+  ).toBeInTheDocument();
+  expect(
+    Object.values(loadDemo().messages).find((m) => m.attachment)?.recipient,
+  ).toBe("hardik");
+});
+it("favorites a private chat and displays the email in the sidebar", async () => {
+  start();
+  expect(screen.getByText("mayur@example.com")).toBeInTheDocument();
+  nav("Chat");
+  fireEvent.click(screen.getByLabelText("Favorite Hardik Maheshwari"));
+  await waitFor(() =>
+    expect(loadDemo().preferences.favorites["dm-hardik--mayur"]).toBe(true),
+  );
+  expect(
+    screen.getAllByRole("button", { name: /^(Offline|Online) Hardik/ }),
+  ).toHaveLength(2);
+});
+it("updates profile details and the selected theme", async () => {
+  start();
+  fireEvent.click(screen.getByLabelText("Edit profile"));
+  fireEvent.change(screen.getByLabelText("Name"), {
+    target: { value: "Mayur B" },
+  });
+  fireEvent.change(screen.getByLabelText("About you"), {
+    target: { value: "College developer" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  await waitFor(() =>
+    expect(loadDemo().users.mayur.bio).toBe("College developer"),
+  );
+  nav("Settings");
+  fireEvent.change(screen.getByLabelText("Theme"), {
+    target: { value: "dark" },
+  });
+  await waitFor(() =>
+    expect(document.documentElement.dataset.theme).toBe("dark"),
+  );
+});
+it("schedules an event in the selected project", async () => {
+  start();
+  await team();
+  nav("Calendar");
+  fireEvent.click(screen.getByRole("button", { name: "New event" }));
+  fireEvent.change(screen.getByLabelText("Title"), {
+    target: { value: "Final review" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  await waitFor(() =>
+    expect(
+      Object.values(Object.values(loadDemo().teams)[0].events)[0].title,
+    ).toBe("Final review"),
+  );
+});
+
+it("opens on the dashboard and keeps sidebar navigation flat", () => {
+  start();
+  expect(
+    within(screen.getByRole("main")).getByRole("heading", {
+      name: "Dashboard",
+      level: 1,
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Your chats and projects at a glance."),
+  ).toBeInTheDocument();
+  nav("Tasks");
+  const taskLink = within(
+    screen.getByRole("navigation", { name: "Main navigation" }),
+  ).getByRole("button", { name: "Tasks" });
+  expect(taskLink).not.toHaveAttribute("aria-expanded");
+  expect(screen.getByLabelText("Selected team")).toBeInTheDocument();
+});
+it("imports reviewed records without overwriting an existing task", async () => {
+  start();
+  await team();
+  const original = loadDemo(),
+    teamId = Object.keys(original.teams)[0],
+    workspaceId = Object.keys(original.teams[teamId].workspaces)[0];
+  original.teams[teamId].tasks = {
+    existing: {
+      id: "existing",
+      title: "Existing task",
+      workspaceId,
+      assignee: "mayur",
+      due: "2026-11-01",
+      status: "To do",
+      priority: "Low",
+      createdAt: 1,
+      createdBy: "mayur",
+    },
+  };
+  saveDemo(original);
+  nav("Settings");
+  fireEvent.click(screen.getByRole("button", { name: "Backup", exact: true }));
+  const data = {
+    format: "flabbychat-backup",
+    version: 1,
+    project: {
+      workspaces: {
+        old: { id: "old", name: "Imported project", description: "" },
+      },
+      tasks: {
+        oldtask: {
+          id: "oldtask",
+          title: "Imported task",
+          workspaceId: "old",
+          assignee: "mayur",
+          due: "2026-11-01",
+          status: "To do",
+          priority: "High",
+        },
+      },
+    },
+  };
+  const file = new File([JSON.stringify(data)], "backup.json", {
+    type: "application/json",
+  });
+  file.text = async () => JSON.stringify(data);
+  fireEvent.change(screen.getByLabelText("Import backup"), {
+    target: { files: [file] },
+  });
+  expect(
+    await screen.findByRole("button", { name: "Import as new records" }),
+  ).toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Import as new records" }),
+  );
+  await waitFor(() =>
+    expect(Object.values(loadDemo().teams[teamId].tasks)).toHaveLength(2),
+  );
+  expect(loadDemo().teams[teamId].tasks.existing.title).toBe("Existing task");
+});
+
+it("uses a header search and notifications while keeping chat navigation in the chat area", async () => {
+  start();
+  const navigation = screen.getByRole("navigation", {
+    name: "Main navigation",
+  });
+  expect(
+    within(navigation).queryByRole("button", { name: "Alerts" }),
+  ).not.toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Search app"), {
+    target: { value: "Hardik" },
+  });
+  const results = screen.getByRole("region", { name: "Search results" });
+  fireEvent.click(
+    within(results).getByRole("button", { name: /Hardik Maheshwari/ }),
+  );
+  expect(
+    screen.getByRole("heading", { name: "Hardik Maheshwari" }),
+  ).toBeInTheDocument();
+  expect(
+    within(navigation).queryByRole("button", { name: "general" }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole("complementary", { name: "Chat list" })).getByRole(
+      "button",
+      { name: /^general(?: |$)/ },
+    ),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Notifications"));
+  expect(
+    screen.getByRole("region", { name: "Notifications" }),
+  ).toBeInTheDocument();
+});
+
+it("opens mobile search below the header and dismisses it with Escape or a result", () => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  try {
+    start();
+    expect(screen.queryByLabelText("Search app")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Open search"));
+    expect(screen.getByLabelText("Search app")).toHaveFocus();
+    fireEvent.keyDown(screen.getByLabelText("Search app"), { key: "Escape" });
+    expect(screen.queryByLabelText("Search app")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Open search"));
+    fireEvent.change(screen.getByLabelText("Search app"), {
+      target: { value: "Hardik" },
+    });
+    fireEvent.click(
+      within(screen.getByRole("region", { name: "Search results" })).getByRole(
+        "button",
+        { name: /Hardik Maheshwari/ },
+      ),
+    );
+    expect(screen.queryByLabelText("Search app")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Hardik Maheshwari" }),
+    ).toBeInTheDocument();
+  } finally {
+    cleanup();
+    vi.unstubAllGlobals();
+  }
+});
+it("keeps notifications in a dismissible popup without replacing the current page", () => {
+  start();
+  fireEvent.click(screen.getByLabelText("Notifications"));
+  expect(
+    screen.getByRole("region", { name: "Notifications" }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { name: "Dashboard", level: 1 }),
+  ).toBeInTheDocument();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(
+    screen.queryByRole("region", { name: "Notifications" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Notifications"));
+  fireEvent.pointerDown(screen.getByRole("main"));
+  expect(
+    screen.queryByRole("region", { name: "Notifications" }),
+  ).not.toBeInTheDocument();
+});
+
+it("hides calling controls in channels and demo private chats", () => {
+  start();
+  nav("Chat");
+  expect(
+    screen.queryByRole("button", { name: "Voice call" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Video call" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Voice call" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: "Video call" }),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Edit profile"));
+  expect(
+    within(
+      screen.getByRole("navigation", { name: "Profile sections" }),
+    ).queryByRole("button", { name: "Password" }),
+  ).not.toBeInTheDocument();
+});
+
+it("shows a password mismatch beside its field without changing the account", () => {
+  render(
+    <Profile
+      user={demoUser}
+      demo={false}
+      onSave={vi.fn()}
+      onNotice={vi.fn()}
+    />,
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: "Password", exact: true }),
+  );
+  fireEvent.change(screen.getByLabelText("Current password"), {
+    target: { value: "current-example" },
+  });
+  fireEvent.change(screen.getByLabelText("New password"), {
+    target: { value: "new-example-123" },
+  });
+  fireEvent.change(screen.getByLabelText("Confirm new password"), {
+    target: { value: "different-example" },
+  });
+  fireEvent.submit(
+    screen.getByRole("button", { name: "Update password" }).closest("form"),
+  );
+  expect(screen.getByLabelText("Confirm new password")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "The new passwords do not match.",
+  );
+  expect(cloud.changePassword).not.toHaveBeenCalled();
+});
+
+it("keeps a failed notification action in its popup and allows retry", async () => {
+  const onRead = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Connection lost. Try again."))
+    .mockResolvedValueOnce();
+  const onOpen = vi.fn();
+  render(
+    <NotificationDropdown
+      notifications={[
+        {
+          id: "n1",
+          title: "New message",
+          detail: "Hello",
+          createdAt: 1,
+          chat: "general",
+        },
+      ]}
+      preferences={{}}
+      onRead={onRead}
+      onOpen={onOpen}
+      onClose={vi.fn()}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: /New message Hello/ }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Connection lost. Try again.",
+  );
+  expect(onOpen).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: /New message Hello/ }));
+  await waitFor(() => expect(onOpen).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});

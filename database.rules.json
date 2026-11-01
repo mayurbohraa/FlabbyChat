@@ -1,0 +1,170 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "collegeChat": {
+      "users": {
+        ".read": "auth != null && auth.token.email_verified === true",
+        "$uid": {
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['id','name']) && newData.child('id').val() === $uid && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 60 && (!newData.child('bio').exists() || (newData.child('bio').isString() && newData.child('bio').val().length <= 300)) && (!newData.child('photoURL').exists() || (newData.child('photoURL').isString() && newData.child('photoURL').val().length <= 350000))"
+        }
+      },
+      "channels": {
+        ".read": "auth != null && auth.token.email_verified === true",
+        "$channel": {
+          ".write": "auth != null && auth.token.email_verified === true && (!data.exists() || data.child('createdBy').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['id','name','description','createdBy']) && newData.child('id').val() === $channel && newData.child('createdBy').val() === auth.uid && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 40 && newData.child('description').isString() && newData.child('description').val().length <= 200"
+        }
+      },
+      "messages": {
+        "$channel": {
+          ".read": "auth != null && auth.token.email_verified === true",
+          "$message": {
+            ".write": "auth != null && auth.token.email_verified === true && ((!data.exists() && newData.child('userId').val() === auth.uid) || data.child('userId').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === $channel && !newData.child('recipient').exists() && ($channel === 'general' || root.child('collegeChat/channels').child($channel).exists()) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))"
+          }
+        }
+      },
+      "direct": {
+        "$a": {
+          "$b": {
+            ".read": "auth != null && auth.token.email_verified === true && (auth.uid === $a || auth.uid === $b)",
+            "$message": {
+              ".write": "auth != null && auth.token.email_verified === true && ((!data.exists() && newData.child('userId').val() === auth.uid) || data.child('userId').val() === auth.uid) && (auth.uid === $a || auth.uid === $b) && root.child('collegeChat/users').child($a).exists() && root.child('collegeChat/users').child($b).exists()",
+              ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === 'dm-' + $a + '--' + $b && ((newData.child('userId').val() === $a && newData.child('recipient').val() === $b) || (newData.child('userId').val() === $b && newData.child('recipient').val() === $a)) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))"
+            }
+          }
+        }
+      },
+      "preferences": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          "favorites": {
+            "$channel": {
+              ".validate": "newData.isBoolean()"
+            }
+          },
+          "lastRead": {
+            "$channel": {
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
+      },
+      "presence": {
+        ".read": "auth != null && auth.token.email_verified === true",
+        "$uid": {
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          ".validate": "newData.hasChildren(['online','lastSeen']) && newData.child('online').isBoolean() && newData.child('lastSeen').isNumber()"
+        }
+      },
+      "calls": {
+        "$call": {
+          ".read": "auth != null && auth.token.email_verified === true && (data.child('caller').val() === auth.uid || data.child('receiver').val() === auth.uid)",
+          ".write": "auth != null && auth.token.email_verified === true && ((!data.exists() && newData.child('caller').val() === auth.uid && root.child('collegeChat/users').child(newData.child('receiver').val()).exists()) || data.child('caller').val() === auth.uid || data.child('receiver').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['id','caller','receiver','status','offer','createdAt']) && newData.child('id').val() === $call && (!data.exists() || (newData.child('caller').val() === data.child('caller').val() && newData.child('receiver').val() === data.child('receiver').val())) && (newData.child('status').val() === 'ringing' || newData.child('status').val() === 'accepted' || newData.child('status').val() === 'ended')"
+        }
+      },
+      "incoming": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          ".write": "auth != null && auth.token.email_verified === true && ((newData.exists() && !data.exists() && newData.child('from').val() === auth.uid && root.child('collegeChat/calls').child(newData.child('id').val()).child('caller').val() === auth.uid && root.child('collegeChat/calls').child(newData.child('id').val()).child('receiver').val() === $uid) || (!newData.exists() && (auth.uid === $uid || data.child('from').val() === auth.uid)))",
+          ".validate": "newData.hasChildren(['id','from','name','video','createdAt'])"
+        }
+      },
+      "libraries": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          "files": {
+            "$id": {
+              ".validate": "newData.hasChildren(['id','name','url','kind','size','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 300 && newData.child('url').isString() && newData.child('url').val().length <= 350000 && (newData.child('kind').val() === 'image' || newData.child('kind').val() === 'pdf') && newData.child('size').isNumber() && newData.child('size').val() >= 0 && newData.child('size').val() <= 5242880 && newData.child('createdAt').isNumber()"
+            }
+          },
+          "folders": {
+            "$id": {
+              ".validate": "newData.hasChildren(['id','name','createdAt']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80"
+            }
+          }
+        }
+      },
+      "teamIndex": {
+        "$uid": {
+          ".read": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+          "$team": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid && (!newData.exists() || (newData.val() === true && root.child('collegeChat/teams').child($team).child('members').child($uid).exists()))",
+            ".validate": "newData.isBoolean()"
+          }
+        }
+      },
+      "teams": {
+        "$team": {
+          ".read": "auth != null && auth.token.email_verified === true && data.child('members').child(auth.uid).exists()",
+          ".write": "auth != null && auth.token.email_verified === true && !data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).exists()",
+          ".validate": "newData.hasChildren(['id','name','owner','members','createdAt']) && newData.child('id').val() === $team && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80 && (!data.exists() || newData.child('owner').val() === data.child('owner').val()) && newData.child('members').child(newData.child('owner').val()).exists()",
+          "members": {
+            "$uid": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid && $uid !== root.child('collegeChat/teams').child($team).child('owner').val()",
+              ".validate": "newData.hasChildren(['id','name']) && newData.child('id').val() === $uid && root.child('collegeChat/users').child($uid).exists()"
+            }
+          },
+          "workspaces": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && (newData.exists() || root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid)",
+              ".validate": "newData.hasChildren(['id','name','createdAt']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80 && (!newData.child('description').exists() || newData.child('description').val().length <= 200)"
+            }
+          },
+          "tasks": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".validate": "newData.hasChildren(['id','title','assignee','status','due','priority','workspaceId','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && (newData.child('status').val() === 'To do' || newData.child('status').val() === 'In progress' || newData.child('status').val() === 'Done') && (newData.child('priority').val() === 'Low' || newData.child('priority').val() === 'Medium' || newData.child('priority').val() === 'High') && (root.child('collegeChat/teams').child($team).child('members').child(newData.child('assignee').val()).exists() || (data.exists() && data.child('assignee').val() === newData.child('assignee').val())) && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists() && newData.child('due').isString() && newData.child('createdAt').isNumber()"
+            }
+          },
+          "events": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".validate": "newData.hasChildren(['id','title','date','time','workspaceId','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && newData.child('date').isString() && newData.child('time').isString() && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists()"
+            }
+          },
+          "topics": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
+              ".validate": "newData.hasChildren(['id','title','body','workspaceId','createdAt','createdBy','name']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && newData.child('body').isString() && newData.child('body').val().length <= 5000 && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists()",
+              "replies": {
+                "$reply": {
+                  ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
+                  ".validate": "newData.hasChildren(['id','text','name','createdBy','createdAt']) && newData.child('id').val() === $reply && newData.child('text').isString() && newData.child('text').val().length <= 3000 && newData.child('createdBy').val() === auth.uid"
+                }
+              }
+            }
+          },
+          "files": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".validate": "newData.hasChildren(['id','name','url','kind','size','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 300 && newData.child('url').isString() && newData.child('url').val().length <= 350000 && (newData.child('kind').val() === 'image' || newData.child('kind').val() === 'pdf') && newData.child('size').isNumber() && newData.child('size').val() >= 0 && newData.child('size').val() <= 5242880 && newData.child('createdAt').isNumber()"
+            }
+          },
+          "folders": {
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".validate": "newData.hasChildren(['id','name','createdAt']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80"
+            }
+          }
+        }
+      },
+      "callHistory": {
+        "$a": {
+          "$b": {
+            ".read": "auth != null && auth.token.email_verified === true && (auth.uid === $a || auth.uid === $b)",
+            "$id": {
+              ".write": "auth != null && auth.token.email_verified === true && (auth.uid === $a || auth.uid === $b)",
+              ".validate": "newData.hasChildren(['id','caller','receiver','callerName','receiverName','video','createdAt','outcome','duration']) && newData.child('id').val() === $id && root.child('collegeChat/calls').child($id).child('caller').val() === newData.child('caller').val() && root.child('collegeChat/calls').child($id).child('receiver').val() === newData.child('receiver').val() && ((newData.child('caller').val() === $a && newData.child('receiver').val() === $b) || (newData.child('caller').val() === $b && newData.child('receiver').val() === $a)) && newData.child('duration').isNumber() && newData.child('duration').val() >= 0 && newData.child('createdAt').isNumber() && newData.child('video').isBoolean()"
+            }
+          }
+        }
+      }
+    }
+  }
+}
