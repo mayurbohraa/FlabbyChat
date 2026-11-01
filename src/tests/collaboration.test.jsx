@@ -75,6 +75,7 @@ it("creates a team, assigns a task, and persists status changes", async () => {
     within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
   );
   expect(await screen.findByText("Finish the report")).toBeInTheDocument();
+  fireEvent.click(screen.getByText("Finish the report"));
   fireEvent.change(screen.getByLabelText("Status for Finish the report"), {
     target: { value: "Done" },
   });
@@ -138,7 +139,8 @@ it("uploads to a personal library and explicitly shares the file into a chosen c
     },
   });
   expect(await screen.findByText("notes.pdf")).toBeInTheDocument();
-  fireEvent.click(screen.getByLabelText("Share notes.pdf in chat"));
+  fireEvent.click(screen.getByLabelText("File options for notes.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Share in chat" }));
   fireEvent.change(screen.getByLabelText("Conversation"), {
     target: { value: "dm-hardik--mayur" },
   });
@@ -224,67 +226,6 @@ it("opens on the dashboard and keeps sidebar navigation flat", () => {
   expect(taskLink).not.toHaveAttribute("aria-expanded");
   expect(screen.getByLabelText("Selected team")).toBeInTheDocument();
 });
-it("imports reviewed records without overwriting an existing task", async () => {
-  start();
-  await team();
-  const original = loadDemo(),
-    teamId = Object.keys(original.teams)[0],
-    workspaceId = Object.keys(original.teams[teamId].workspaces)[0];
-  original.teams[teamId].tasks = {
-    existing: {
-      id: "existing",
-      title: "Existing task",
-      workspaceId,
-      assignee: "mayur",
-      due: "2026-11-01",
-      status: "To do",
-      priority: "Low",
-      createdAt: 1,
-      createdBy: "mayur",
-    },
-  };
-  saveDemo(original);
-  nav("Settings");
-  fireEvent.click(screen.getByRole("button", { name: "Backup", exact: true }));
-  const data = {
-    format: "flabbychat-backup",
-    version: 1,
-    project: {
-      workspaces: {
-        old: { id: "old", name: "Imported project", description: "" },
-      },
-      tasks: {
-        oldtask: {
-          id: "oldtask",
-          title: "Imported task",
-          workspaceId: "old",
-          assignee: "mayur",
-          due: "2026-11-01",
-          status: "To do",
-          priority: "High",
-        },
-      },
-    },
-  };
-  const file = new File([JSON.stringify(data)], "backup.json", {
-    type: "application/json",
-  });
-  file.text = async () => JSON.stringify(data);
-  fireEvent.change(screen.getByLabelText("Import backup"), {
-    target: { files: [file] },
-  });
-  expect(
-    await screen.findByRole("button", { name: "Import as new records" }),
-  ).toBeInTheDocument();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Import as new records" }),
-  );
-  await waitFor(() =>
-    expect(Object.values(loadDemo().teams[teamId].tasks)).toHaveLength(2),
-  );
-  expect(loadDemo().teams[teamId].tasks.existing.title).toBe("Existing task");
-});
-
 it("uses a header search and notifications while keeping chat navigation in the chat area", async () => {
   start();
   const navigation = screen.getByRole("navigation", {
@@ -464,4 +405,113 @@ it("keeps a failed notification action in its popup and allows retry", async () 
   fireEvent.click(screen.getByRole("button", { name: /New message Hello/ }));
   await waitFor(() => expect(onOpen).toHaveBeenCalledTimes(1));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("pauses and restores a member's team access from the member menu", async () => {
+  start();
+  await team();
+  fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
+  fireEvent.change(screen.getByLabelText("Registered user"), {
+    target: { value: "hardik" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  fireEvent.click(
+    screen.getByLabelText("Member options for Hardik Maheshwari"),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Pause access" }));
+  await waitFor(() =>
+    expect(Object.values(loadDemo().teams)[0].members.hardik.status).toBe(
+      "on hold",
+    ),
+  );
+  fireEvent.click(
+    screen.getByLabelText("Member options for Hardik Maheshwari"),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Restore access" }));
+  await waitFor(() =>
+    expect(Object.values(loadDemo().teams)[0].members.hardik.status).toBe(
+      "active",
+    ),
+  );
+});
+it("copies and moves file references without overwriting the original", async () => {
+  const data = loadDemo();
+  data.library = {
+    folders: { reports: { id: "reports", name: "Reports", createdAt: 1 } },
+    files: {
+      original: {
+        id: "original",
+        name: "report.pdf",
+        kind: "pdf",
+        url: "data:application/pdf;base64,JVBERi0xLjQ=",
+        size: 9,
+        createdAt: 1,
+        createdBy: "mayur",
+        folderId: "",
+      },
+    },
+  };
+  saveDemo(data);
+  start();
+  nav("Storage");
+  fireEvent.click(screen.getByLabelText("File options for report.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate file" }));
+  await waitFor(() =>
+    expect(Object.keys(loadDemo().library.files)).toHaveLength(2),
+  );
+  fireEvent.click(screen.getByLabelText("File options for report.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Copy to…" }));
+  fireEvent.click(screen.getByRole("radio", { name: /Reports/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Copy here" }));
+  await waitFor(() =>
+    expect(Object.keys(loadDemo().library.files)).toHaveLength(3),
+  );
+  expect(
+    Object.values(loadDemo().library.files).some(
+      (f) => f.folderId === "reports" && f.id !== "original",
+    ),
+  ).toBe(true);
+  fireEvent.click(screen.getByLabelText("File options for report.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+  fireEvent.click(screen.getByRole("radio", { name: /Reports/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Move here" }));
+  await waitFor(() =>
+    expect(loadDemo().library.files.original.folderId).toBe("reports"),
+  );
+  expect(loadDemo().library.files.original.url).toBe(
+    data.library.files.original.url,
+  );
+  expect(Object.keys(loadDemo().library.files)).toHaveLength(3);
+});
+it("offers day, week, month and year calendar views", async () => {
+  start();
+  await team();
+  nav("Calendar");
+  fireEvent.click(screen.getByRole("button", { name: "Year", exact: true }));
+  expect(screen.getByText(/January/)).toBeInTheDocument();
+  expect(screen.getByText(/December/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Day", exact: true }));
+  expect(screen.getByText("No events on this day.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Week", exact: true }));
+  expect(screen.getAllByRole("button", { name: /Add event on/ })).toHaveLength(
+    7,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Month", exact: true }));
+  expect(
+    screen.getAllByRole("button", { name: /Add event on/ }).length,
+  ).toBeGreaterThanOrEqual(28);
+});
+
+it("confirms ownership transfer and removes owner actions from the previous owner",async()=>{
+ start();await team();fireEvent.click(screen.getByRole("button",{name:"Add registered user"}));fireEvent.change(screen.getByLabelText("Registered user"),{target:{value:"hardik"}});fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"Create"}));await waitFor(()=>expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+ fireEvent.click(screen.getByLabelText("Member options for Hardik Maheshwari"));fireEvent.click(screen.getByRole("menuitem",{name:"Transfer ownership"}));expect(screen.getByRole("dialog")).toHaveTextContent("You will remain a member");expect(Object.values(loadDemo().teams)[0].owner).toBe("mayur");
+ fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"Transfer ownership"}));await waitFor(()=>expect(Object.values(loadDemo().teams)[0].owner).toBe("hardik"));expect(Object.values(loadDemo().teams)[0].members.mayur).toBeDefined();expect(screen.queryByRole("button",{name:"Add registered user"})).not.toBeInTheDocument();expect(screen.queryByLabelText("Member options for Hardik Maheshwari")).not.toBeInTheDocument();
+});
+it("persists the chat layout preference and changes the message presentation",async()=>{
+ start();nav("Settings");fireEvent.change(screen.getByLabelText("Chat layout"),{target:{value:"bubbles"}});await waitFor(()=>expect(loadDemo().preferences.settings.chatLayout).toBe("bubbles"));nav("Chat");fireEvent.change(screen.getByLabelText("Message"),{target:{value:"Layout check"}});fireEvent.click(screen.getByLabelText("Send message"));expect((await screen.findByText("Layout check")).closest("article")).toHaveClass("bubble-message","own");
 });

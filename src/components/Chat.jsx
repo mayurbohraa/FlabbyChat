@@ -25,6 +25,7 @@ import {
   MessagesSquare,
   FolderOpen,
   CircleCheck,
+  UserRound,
 } from "lucide-react";
 import * as cloud from "../services/cloud.js";
 import {
@@ -34,6 +35,8 @@ import {
 } from "../services/calls.js";
 import CallDialog from "./CallDialog.jsx";
 import FilePreview from "./FilePreview.jsx";
+import ActionMenu from "./ActionMenu.jsx";
+import { callSummary } from "../utils/calendar.js";
 import Collaboration from "./Collaboration.jsx";
 import NotificationDropdown from "./NotificationDropdown.jsx";
 import useCollaboration from "../hooks/useCollaboration.js";
@@ -188,6 +191,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   const searchInputRef = useRef(null);
   const [globalSearch, setGlobalSearch] = useState("");
   const [previewFile, setPreviewFile] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
   const [chatListOpen, setChatListOpen] = useState(false);
   const [view, setView] = useState("Dashboard"),
     [notice, setNotice] = useState(""),
@@ -456,6 +460,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   function select(next) {
     setGlobalSearch("");
     selectionRef.current = next.id;
+    setReplyTo(drafts.current[next.id]?.reply || null);
     setSelected(next);
     setView("Chat");
     setSearchOpen(false);
@@ -480,6 +485,19 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       createdAt: Date.now(),
       ...(selected.private ? { recipient: selected.recipient } : {}),
       ...(attachment ? { attachment } : {}),
+      ...(replyTo
+        ? {
+            reply: {
+              id: replyTo.id,
+              name: replyTo.name,
+              text: (
+                replyTo.text ||
+                replyTo.attachment?.name ||
+                "Attachment"
+              ).slice(0, 160),
+            },
+          }
+        : {}),
     };
     try {
       if (demo)
@@ -491,6 +509,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       if (selectionRef.current === currentSelection) {
         setText("");
         setAttachment(null);
+        setReplyTo(null);
       }
     } catch (err) {
       report(err);
@@ -650,7 +669,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
           }
         >
           <span
-            className={`presence-dot ${data.presence?.[person.id]?.online ? "online" : ""}`}
+            className={`presence-dot ${data.presence?.[person.id]?.online ? "online" : "offline"}`}
             aria-label={
               data.presence?.[person.id]?.online ? "Online" : "Offline"
             }
@@ -870,19 +889,6 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
               {currentUser.email || user.email}
             </small>
           </button>
-          <button
-            className="icon-button"
-            aria-label="Logout"
-            onClick={async () => {
-              try {
-                await onLogout();
-              } catch (err) {
-                report(err);
-              }
-            }}
-          >
-            <LogOut size={18} />
-          </button>
         </div>
       </aside>
       {mobile && (
@@ -906,7 +912,6 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
             >
               <Menu size={21} />
             </button>
-            <span>{sectionLabels[view]}</span>
           </div>
           <button
             className="icon-button mobile-search-toggle"
@@ -1004,14 +1009,28 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                 </span>
               )}
             </button>
-            <button
+            <ActionMenu
+              label="Account menu"
+              onOpen={()=>{setNotificationsOpen(false);setSearchOpen(false);}}
               className="header-profile"
-              aria-label="Profile"
-              title="Profile"
-              onClick={() => navigate("Profile")}
+              actions={[
+                { label: "Profile", Icon:UserRound, onSelect: () => navigate("Profile") },
+                {
+                  label: "Logout",
+                  Icon: LogOut,
+                  danger: true,
+                  onSelect: async () => {
+                    try {
+                      await onLogout();
+                    } catch (err) {
+                      report(err);
+                    }
+                  },
+                },
+              ]}
             >
               <Avatar name={currentUser.name} photoURL={currentUser.photoURL} />
-            </button>
+            </ActionMenu>
           </div>
           {notificationsOpen && (
             <NotificationDropdown
@@ -1133,28 +1152,6 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                     </p>
                   </div>
                   <div className="header-actions">
-                    <button
-                      className="icon-button"
-                      aria-label="Export conversation"
-                      title="Export conversation"
-                      onClick={() => {
-                        download(
-                          "flabbychat-" + selected.id + ".json",
-                          JSON.stringify(
-                            {
-                              conversation: selected.id,
-                              exportedAt: new Date().toISOString(),
-                              messages: filterMessages(messages),
-                            },
-                            null,
-                            2,
-                          ),
-                        );
-                        setNotice("Conversation exported.");
-                      }}
-                    >
-                      <Download size={18} />
-                    </button>
                     {
                       <button
                         className={`icon-button favorite-button ${preferences.favorites?.[selected.id] ? "starred" : ""}`}
@@ -1284,7 +1281,9 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                               </span>
                             </div>
                           )}
-                          <article className={`message ${own ? "own" : ""}`}>
+                          <article
+                            className={`message ${own ? "own" : ""} ${preferences.settings?.chatLayout === "bubbles" ? "bubble-message" : "list-message"} ${message.kind === "call" ? "call-message" : ""}`}
+                          >
                             <Avatar
                               name={
                                 data.users?.[message.userId]?.name ||
@@ -1295,7 +1294,6 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                             <div className="message-content">
                               <div className="message-meta">
                                 <strong>{message.name}</strong>
-                                {own && <span>You</span>}
                                 <time
                                   dateTime={new Date(
                                     message.createdAt,
@@ -1309,28 +1307,20 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                                   })}
                                 </time>
                               </div>
+                              {message.reply && (
+                                <blockquote className="message-reply">
+                                  <strong>{message.reply.name}</strong>
+                                  <span>{message.reply.text}</span>
+                                </blockquote>
+                              )}
                               {message.kind === "call" ? (
-                                <div className="call-history-entry">
+                                <div className="compact-call">
                                   {message.call.video ? (
-                                    <Video size={18} />
+                                    <Video size={15} />
                                   ) : (
-                                    <Phone size={18} />
+                                    <Phone size={15} />
                                   )}
-                                  <span>
-                                    {message.text}
-                                    {message.call.duration > 0
-                                      ? " · " +
-                                        Math.floor(message.call.duration / 60) +
-                                        "m " +
-                                        (message.call.duration % 60) +
-                                        "s"
-                                      : ""}
-                                    <small>
-                                      {new Date(
-                                        message.createdAt,
-                                      ).toLocaleString()}
-                                    </small>
-                                  </span>
+                                  <span>{callSummary(message.call)}</span>
                                 </div>
                               ) : (
                                 message.text && <p>{message.text}</p>
@@ -1422,14 +1412,37 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                                   </div>
                                 )}
                             </div>
-                            {own && message.kind !== "call" && (
-                              <button
-                                className="icon-button delete-message"
-                                aria-label="Delete your message"
-                                onClick={() => setDeleteTarget(message)}
-                              >
-                                <Trash2 size={15} />
-                              </button>
+                            {message.kind !== "call" && (
+                              <ActionMenu
+                                label={
+                                  "Message options for " +
+                                  message.name +
+                                  " " +
+                                  message.id
+                                }
+                                actions={[
+                                  {
+                                    label: "Reply",
+                                    onSelect: () => {
+                                      setReplyTo(message);
+                                      drafts.current[selected.id] = {
+                                        ...drafts.current[selected.id],
+                                        reply: message,
+                                      };
+                                    },
+                                  },
+                                  ...(own
+                                    ? [
+                                        {
+                                          label: "Delete message",
+                                          danger: true,
+                                          onSelect: () =>
+                                            setDeleteTarget(message),
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                              />
                             )}
                           </article>
                         </React.Fragment>
@@ -1439,6 +1452,30 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                   <div ref={bottom} />
                 </section>
                 <form className="composer" onSubmit={send}>
+                  {replyTo && (
+                    <div className="reply-composer">
+                      <div>
+                        <strong>Replying to {replyTo.name}</strong>
+                        <span>
+                          {replyTo.text ||
+                            replyTo.attachment?.name ||
+                            "Attachment"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        aria-label="Cancel reply"
+                        onClick={() => {
+                          setReplyTo(null);
+                          if (drafts.current[selected.id])
+                            delete drafts.current[selected.id].reply;
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
                   {attachment && (
                     <div className="image-preview">
                       {attachment.kind === "image" ? (

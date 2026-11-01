@@ -22,7 +22,10 @@
           ".read": "auth != null && auth.token.email_verified === true",
           "$message": {
             ".write": "auth != null && auth.token.email_verified === true && ((!data.exists() && newData.child('userId').val() === auth.uid) || data.child('userId').val() === auth.uid)",
-            ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === $channel && !newData.child('recipient').exists() && ($channel === 'general' || root.child('collegeChat/channels').child($channel).exists()) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))"
+            ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === $channel && !newData.child('recipient').exists() && ($channel === 'general' || root.child('collegeChat/channels').child($channel).exists()) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))",
+            "reply": {
+              ".validate": "newData.hasChildren(['id','name','text']) && newData.child('id').isString() && newData.child('id').val().length <= 128 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('text').isString() && newData.child('text').val().length <= 160"
+            }
           }
         }
       },
@@ -32,7 +35,10 @@
             ".read": "auth != null && auth.token.email_verified === true && (auth.uid === $a || auth.uid === $b)",
             "$message": {
               ".write": "auth != null && auth.token.email_verified === true && ((!data.exists() && newData.child('userId').val() === auth.uid) || data.child('userId').val() === auth.uid) && (auth.uid === $a || auth.uid === $b) && root.child('collegeChat/users').child($a).exists() && root.child('collegeChat/users').child($b).exists()",
-              ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === 'dm-' + $a + '--' + $b && ((newData.child('userId').val() === $a && newData.child('recipient').val() === $b) || (newData.child('userId').val() === $b && newData.child('recipient').val() === $a)) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))"
+              ".validate": "newData.hasChildren(['id','userId','name','text','channel','createdAt']) && newData.child('id').val() === $message && newData.child('userId').val() === auth.uid && newData.child('text').isString() && newData.child('text').val().length <= 4000 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('createdAt').isNumber() && (!newData.child('image').exists() || (newData.child('image').isString() && newData.child('image').val().length <= 350000)) && newData.child('channel').val() === 'dm-' + $a + '--' + $b && ((newData.child('userId').val() === $a && newData.child('recipient').val() === $b) || (newData.child('userId').val() === $b && newData.child('recipient').val() === $a)) && (!newData.child('attachment').exists() || (newData.child('attachment').hasChildren(['url','name','kind','size']) && newData.child('attachment/url').isString() && newData.child('attachment/url').val().length <= 350000 && newData.child('attachment/name').isString() && newData.child('attachment/name').val().length <= 300 && newData.child('attachment/size').isNumber() && newData.child('attachment/size').val() <= 5242880 && (newData.child('attachment/kind').val() === 'image' || newData.child('attachment/kind').val() === 'pdf')))",
+              "reply": {
+                ".validate": "newData.hasChildren(['id','name','text']) && newData.child('id').isString() && newData.child('id').val().length <= 128 && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('text').isString() && newData.child('text').val().length <= 160"
+              }
             }
           }
         }
@@ -101,40 +107,40 @@
       },
       "teams": {
         "$team": {
-          ".read": "auth != null && auth.token.email_verified === true && data.child('members').child(auth.uid).exists()",
+          ".read": "auth != null && auth.token.email_verified === true && data.child('members').child(auth.uid).exists() && data.child('members').child(auth.uid).child('status').val() !== 'on hold'",
           ".write": "auth != null && auth.token.email_verified === true && !data.exists() && newData.child('owner').val() === auth.uid && newData.child('members').child(auth.uid).exists()",
-          ".validate": "newData.hasChildren(['id','name','owner','members','createdAt']) && newData.child('id').val() === $team && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80 && (!data.exists() || newData.child('owner').val() === data.child('owner').val()) && newData.child('members').child(newData.child('owner').val()).exists()",
+          ".validate": "newData.hasChildren(['id','name','owner','members','createdAt']) && newData.child('id').val() === $team && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80 && (!data.exists() || newData.child('owner').val() === data.child('owner').val() || (auth.uid === data.child('owner').val() && data.child('members').child(newData.child('owner').val()).exists() && data.child('members').child(newData.child('owner').val()).child('status').val() !== 'on hold')) && newData.child('members').child(newData.child('owner').val()).exists()",
           "members": {
             "$uid": {
               ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid && $uid !== root.child('collegeChat/teams').child($team).child('owner').val()",
-              ".validate": "newData.hasChildren(['id','name']) && newData.child('id').val() === $uid && root.child('collegeChat/users').child($uid).exists()"
+              ".validate": "newData.hasChildren(['id','name']) && newData.child('id').val() === $uid && root.child('collegeChat/users').child($uid).exists() && (!newData.child('status').exists() || newData.child('status').val() === 'active' || newData.child('status').val() === 'on hold') && (!newData.child('joinedAt').exists() || newData.child('joinedAt').isNumber())"
             }
           },
           "workspaces": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && (newData.exists() || root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid)",
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold' && (newData.exists() || root.child('collegeChat/teams').child($team).child('owner').val() === auth.uid)",
               ".validate": "newData.hasChildren(['id','name','createdAt']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80 && (!newData.child('description').exists() || newData.child('description').val().length <= 200)"
             }
           },
           "tasks": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
-              ".validate": "newData.hasChildren(['id','title','assignee','status','due','priority','workspaceId','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && (newData.child('status').val() === 'To do' || newData.child('status').val() === 'In progress' || newData.child('status').val() === 'Done') && (newData.child('priority').val() === 'Low' || newData.child('priority').val() === 'Medium' || newData.child('priority').val() === 'High') && (root.child('collegeChat/teams').child($team).child('members').child(newData.child('assignee').val()).exists() || (data.exists() && data.child('assignee').val() === newData.child('assignee').val())) && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists() && newData.child('due').isString() && newData.child('createdAt').isNumber()"
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold'",
+              ".validate": "newData.hasChildren(['id','title','assignee','status','due','priority','workspaceId','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && (newData.child('status').val() === 'To do' || newData.child('status').val() === 'In progress' || newData.child('status').val() === 'Done') && (newData.child('priority').val() === 'Low' || newData.child('priority').val() === 'Medium' || newData.child('priority').val() === 'High') && ((root.child('collegeChat/teams').child($team).child('members').child(newData.child('assignee').val()).exists() && root.child('collegeChat/teams').child($team).child('members').child(newData.child('assignee').val()).child('status').val() !== 'on hold') || (data.exists() && data.child('assignee').val() === newData.child('assignee').val())) && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists() && newData.child('due').isString() && newData.child('createdAt').isNumber() && (!newData.child('description').exists() || (newData.child('description').isString() && newData.child('description').val().length <= 1000))"
             }
           },
           "events": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold'",
               ".validate": "newData.hasChildren(['id','title','date','time','workspaceId','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && newData.child('date').isString() && newData.child('time').isString() && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists()"
             }
           },
           "topics": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold' && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
               ".validate": "newData.hasChildren(['id','title','body','workspaceId','createdAt','createdBy','name']) && newData.child('id').val() === $id && newData.child('title').isString() && newData.child('title').val().length > 0 && newData.child('title').val().length <= 160 && newData.child('body').isString() && newData.child('body').val().length <= 5000 && newData.parent().parent().child('workspaces').child(newData.child('workspaceId').val()).exists()",
               "replies": {
                 "$reply": {
-                  ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
+                  ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold' && ((!data.exists() && newData.child('createdBy').val() === auth.uid) || data.child('createdBy').val() === auth.uid)",
                   ".validate": "newData.hasChildren(['id','text','name','createdBy','createdAt']) && newData.child('id').val() === $reply && newData.child('text').isString() && newData.child('text').val().length <= 3000 && newData.child('createdBy').val() === auth.uid"
                 }
               }
@@ -142,15 +148,19 @@
           },
           "files": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold'",
               ".validate": "newData.hasChildren(['id','name','url','kind','size','createdAt','createdBy']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 300 && newData.child('url').isString() && newData.child('url').val().length <= 350000 && (newData.child('kind').val() === 'image' || newData.child('kind').val() === 'pdf') && newData.child('size').isNumber() && newData.child('size').val() >= 0 && newData.child('size').val() <= 5242880 && newData.child('createdAt').isNumber()"
             }
           },
           "folders": {
             "$id": {
-              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists()",
+              ".write": "auth != null && auth.token.email_verified === true && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).exists() && root.child('collegeChat/teams').child($team).child('members').child(auth.uid).child('status').val() !== 'on hold'",
               ".validate": "newData.hasChildren(['id','name','createdAt']) && newData.child('id').val() === $id && newData.child('name').isString() && newData.child('name').val().length > 0 && newData.child('name').val().length <= 80"
             }
+          },
+          "owner": {
+            ".write": "auth != null && auth.token.email_verified === true && data.parent().child('owner').val() === auth.uid && data.parent().child('members').child(newData.val()).exists() && data.parent().child('members').child(newData.val()).child('status').val() !== 'on hold'",
+            ".validate": "newData.isString() && newData.parent().child('members').child(newData.val()).exists() && newData.parent().child('members').child(newData.val()).child('status').val() !== 'on hold'"
           }
         }
       },

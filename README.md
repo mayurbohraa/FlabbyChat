@@ -12,17 +12,17 @@ Dashboard opens after login. The approved layout separates the sidebar, header a
 
 - Email/password login and signup, email verification, resend and password reset.
 - Profile name, photo and bio editing, verified email display and password changes with current-password confirmation.
-- Channels and private chats with search, image/PDF attachments, conversation drafts, timestamps and JSON export.
+- Channels and private chats with search, image/PDF attachments, conversation drafts, timestamps, replies and message actions.
 - Favorites for channels and private chats.
 - Voice/video calls with calling sounds, mute/camera controls, snapshots, outcomes and duration in chat history. Calling controls appear only in supported, signed-in private chats; channels and demo sessions do not show them.
-- Teams with owner-managed membership and separate projects.
+- Teams with owner-managed membership, pause/restore access, ownership transfer and separate projects.
 - Assigned tasks with deadlines, priorities, status, filters and CSV export.
 - Project calendar and discussion boards with replies.
-- Personal/team file libraries with consistent folder rows, search, downloads and explicit sharing into a chosen chat.
+- Personal/team file libraries with compact folder rows, search, in-app previews, downloads, sharing and copy/move actions.
 - Images and PDFs open inside the app in a popup. PDF.js provides page navigation and zoom without a browser PDF plugin or external viewer.
 - Notification dropdown with unread filtering and read actions; optional browser notifications.
-- Light, dark and system themes; validated JSON backup import/export.
-- Settings grouped into Appearance, Notifications and Backup; Profile split into Details and Password. Text buttons use a shared 40 px minimum height on desktop and 44 px on mobile; icon controls use 36 px and 44 px respectively. Small dismissible toasts confirm success, while errors stay beside the relevant form or field.
+- Light, dark and system themes; standard and compact split-message layouts.
+- Settings grouped into Appearance and Notifications; Profile split into Details and Password. Text buttons use a shared 40 px minimum height on desktop and 44 px on mobile; icon controls use 36 px and 44 px respectively. Small dismissible toasts confirm success, while errors stay beside the relevant form or field.
 
 ## Stack
 
@@ -65,11 +65,11 @@ The app checks a 5 MB file limit. Cloudinary presets restrict formats but do not
 
 Without Cloudinary, small images can use the database fallback. Demo files are limited to 250 KB. Provider and browser quotas still apply.
 
-## Projects, files and backups
+## Projects and files
 
 Create a team, add registered users and create/select a project. Tasks, calendar events and discussion posts belong to the selected project. Team files are shared with that team's members; personal files belong to your own library. Sharing a file opens a conversation selector and attaches it as a draft. Press Send to publish it to that chat.
 
-**Settings > Backup** exports personal-library metadata and selected-team project records as JSON. Import validates the backup, shows a review step and adds records with fresh IDs in one update. Existing records are preserved; account credentials and team memberships are excluded. File exports contain links rather than copies of Cloudinary assets. Unsent chat drafts last while the app is open and are not restored after a reload.
+The file library keeps documents in their selected personal or team folder. Preview, download and share controls remain visible; duplicate, copy-to, move-to and remove actions are grouped in the file menu. Files are opened inside the app. Unsent chat drafts last while the app is open and are not restored after a reload.
 
 ## Commands and checks
 
@@ -107,7 +107,7 @@ src/
   components/        Screens, dialogs and shared UI
   services/          Firebase, calling and file uploads
   hooks/             Team and library subscriptions
-  utils/             Data, backup, export and theme helpers
+  utils/             Data, export and theme helpers
   styles/            Base styles and shared UI/theme rules
   tests/             Automated checks and test setup
   assets/            Original logo and calling sound

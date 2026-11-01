@@ -151,7 +151,10 @@ it("attaches an image to a message", async () => {
 });
 it("returns to the login screen after leaving demo", async () => {
   demo();
-  fireEvent.click(screen.getByLabelText("Logout"));
+  fireEvent.click(screen.getByLabelText("Account menu"));
+  fireEvent.click(
+    screen.getByRole("menuitem", { name: "Logout", exact: true }),
+  );
   expect(
     await screen.findByRole("heading", { name: "Login to your account" }),
   ).toBeInTheDocument();
@@ -257,4 +260,72 @@ it("keeps an upload in its originating chat when conversations change", async ()
   expect(screen.queryByText("original.pdf")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "general" }));
   expect(await screen.findByText("original.pdf")).toBeInTheDocument();
+});
+
+it("replies within the selected conversation and deletes own messages from the menu", async () => {
+  demo();
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "Check these notes" },
+  });
+  fireEvent.click(screen.getByLabelText("Send message"));
+  const original = await screen.findByText("Check these notes");
+  fireEvent.click(
+    within(original.closest("article")).getByRole("button", {
+      name: /Message options/,
+    }),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Reply" }));
+  expect(screen.getByText(/Replying to Mayur/)).toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+  );
+  expect(screen.queryByText(/Replying to/)).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "general", exact: true }));
+  expect(screen.getByText(/Replying to Mayur/)).toBeInTheDocument();
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "I will review it" },
+  });
+  fireEvent.click(screen.getByLabelText("Send message"));
+  expect(await screen.findByText("I will review it")).toBeInTheDocument();
+  expect(
+    screen
+      .getByText("I will review it")
+      .closest("article")
+      .querySelector("blockquote"),
+  ).toHaveTextContent("Check these notes");
+  const message = screen
+    .getAllByText("Check these notes")
+    .find((node) => node.tagName === "P");
+  fireEvent.click(
+    within(message.closest("article")).getByRole("button", {
+      name: /Message options/,
+    }),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Delete message" }));
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", {
+      name: "Delete message",
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  expect(screen.queryByText("You", { exact: true })).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText("Export conversation"),
+  ).not.toBeInTheDocument();
+});
+it("opens profile and logout in the round account menu", () => {
+  demo();
+  fireEvent.click(screen.getByLabelText("Account menu"));
+  fireEvent.click(
+    screen.getByRole("menuitem", { name: "Profile", exact: true }),
+  );
+  expect(
+    screen.getByRole("heading", { name: "Profile", level: 1 }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Account menu"));
+  fireEvent.click(
+    screen.getByRole("menuitem", { name: "Logout", exact: true }),
+  );
 });

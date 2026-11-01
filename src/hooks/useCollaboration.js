@@ -11,7 +11,15 @@ export default function useCollaboration(user, demo) {
       const sync = () => {
         try {
           const data = loadDemo();
-          setTeams(data.teams || {});
+          setTeams(
+            Object.fromEntries(
+              Object.entries(data.teams || {}).filter(
+                ([, team]) =>
+                  team.members?.[user.id] &&
+                  team.members[user.id].status !== "on hold",
+              ),
+            ),
+          );
           setLibrary(data.library || { files: {}, folders: {} });
         } catch (err) {
           setError(friendlyError(err));
@@ -58,7 +66,14 @@ export default function useCollaboration(user, demo) {
         name,
         owner: user.id,
         createdAt: Date.now(),
-        members: { [user.id]: { id: user.id, name: user.name } },
+        members: {
+          [user.id]: {
+            id: user.id,
+            name: user.name,
+            status: "active",
+            joinedAt: Date.now(),
+          },
+        },
         workspaces: {
           [workspace]: {
             id: workspace,
@@ -95,30 +110,47 @@ export default function useCollaboration(user, demo) {
       else if (teamId) await cloud.writeTeam(teamId, collection, id, value);
       else await cloud.writePersonal(user.id, collection, id, value);
     },
-    async importBatch(operations) {
-      if (demo)
-        await local((d) => {
-          for (const op of operations) {
-            const target = op.teamId
-              ? d.teams[op.teamId]
-              : d.library || (d.library = {});
-            target[op.collection] = {
-              ...target[op.collection],
-              [op.id]: op.value,
-            };
-          }
-        });
-      else await cloud.importRecords(user.id, operations);
-    },
     async addMember(teamId, member) {
       if (demo)
         await local((d) => {
           d.teams[teamId].members[member.id] = {
             id: member.id,
             name: member.name,
+            status: "active",
+            joinedAt: Date.now(),
           };
         });
       else await cloud.addTeamMember(teamId, member);
+    },
+    async transferOwnership(teamId, id) {
+      if (demo)
+        await local((d) => {
+          const team = d.teams[teamId];
+          if (team.owner !== user.id)
+            throw new Error("Only the current owner can transfer ownership.");
+          if (
+            id === user.id ||
+            !team.members?.[id] ||
+            team.members[id].status === "on hold"
+          )
+            throw new Error("Choose another active team member.");
+          team.owner = id;
+        });
+      else await cloud.transferTeamOwnership(teamId, id);
+    },
+    async setMemberStatus(teamId, id, status) {
+      if (!["active", "on hold"].includes(status))
+        throw new Error("Choose a valid member status.");
+      if (demo)
+        await local((d) => {
+          const team = d.teams[teamId];
+          if (team.owner !== user.id || id === team.owner)
+            throw new Error(
+              "Only the owner can update another member's access.",
+            );
+          team.members[id] = { ...team.members[id], status };
+        });
+      else await cloud.setTeamMemberStatus(teamId, id, status);
     },
     async removeMember(teamId, id) {
       if (demo)

@@ -349,18 +349,26 @@ export async function addTeamMember(team, member) {
   await set(path("teams/" + team + "/members/" + member.id), {
     id: member.id,
     name: member.name,
+    status: "active",
+    joinedAt: Date.now(),
   });
   await set(path("teamIndex/" + member.id + "/" + team), true);
+}
+export function transferTeamOwnership(team, memberId) {
+  return update(path(""), {
+    ["teams/" + team + "/owner"]: memberId,
+    ["teamIndex/" + memberId + "/" + team]: true,
+  });
+}
+export async function setTeamMemberStatus(team, userId, status) {
+  if (!["active", "on hold"].includes(status))
+    throw new Error("Choose a valid member status.");
+  return update(path(""), {
+    ["teams/" + team + "/members/" + userId + "/status"]: status,
+    ["teamIndex/" + userId + "/" + team]: status === "active" ? true : null,
+  });
 }
 export async function removeTeamMember(team, userId) {
   await remove(path("teams/" + team + "/members/" + userId));
   await remove(path("teamIndex/" + userId + "/" + team));
-}
-export function importRecords(userId, operations) {
-  const updates = {};
-  for (const op of operations) {
-    const prefix = op.teamId ? "teams/" + op.teamId : "libraries/" + userId;
-    updates[prefix + "/" + op.collection + "/" + op.id] = op.value;
-  }
-  return update(path(""), updates);
 }

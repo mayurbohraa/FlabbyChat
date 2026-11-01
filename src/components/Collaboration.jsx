@@ -14,17 +14,20 @@ import {
   Users,
   ArrowRight,
   Eye,
+  Search,
+  LayoutGrid,
 } from "lucide-react";
 import { Dialog, Empty } from "./ui.jsx";
 import { uid, friendlyError } from "../utils/chat-data.js";
 import { prepareAttachment, downloadAttachment } from "../services/storage.js";
-import {
-  download,
-  taskCsv,
-  validateBackup,
-} from "../utils/collaboration-data.js";
+import { download, taskCsv } from "../utils/collaboration-data.js";
 import Profile from "./Profile.jsx";
 import SettingsPanel from "./SettingsPanel.jsx";
+import ActionMenu from "./ActionMenu.jsx";
+import FileTransferDialog from "./FileTransferDialog.jsx";
+import TaskBoard from "./TaskBoard.jsx";
+import CalendarPanel from "./CalendarPanel.jsx";
+import Dashboard from "./Dashboard.jsx";
 const localDate = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -47,6 +50,8 @@ export default function Collaboration({
   notifications,
   onNotice,
 }) {
+  const [transfer, setTransfer] = useState(null);
+  const [calendarDate, setCalendarDate] = useState(localDate());
   const [dialog, setDialog] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -54,9 +59,11 @@ export default function Collaboration({
     [scope, setScope] = useState("personal"),
     [folder, setFolder] = useState(""),
     [taskFilter, setTaskFilter] = useState("All"),
-    [month, setMonth] = useState(localDate().slice(0, 7)),
-    [backup, setBackup] = useState(null);
+    [month, setMonth] = useState(localDate().slice(0, 7));
   useEffect(() => setSearch(""), [view]);
+  useEffect(() => {
+    if (context.calendarDate) setCalendarDate(context.calendarDate);
+  }, [context.calendarDate]);
   useEffect(() => {
     if (context.searchToken) {
       setSearch(context.search || "");
@@ -177,6 +184,7 @@ export default function Collaboration({
           await model.write(team.id, "tasks", id, {
             id,
             title: fields.title.trim(),
+            description: fields.description?.trim() || "",
             assignee: fields.assignee,
             due: fields.due,
             priority: fields.priority,
@@ -257,142 +265,49 @@ export default function Collaboration({
       false,
     );
   }
+  async function transferFile(file, operation, destination) {
+    if (destination && !library.folders?.[destination])
+      throw new Error("That folder no longer exists. Choose another folder.");
+    if (!library.files?.[file.id])
+      throw new Error("This file is no longer in the library.");
+    if (operation === "move")
+      await model.write(teamScope ? team.id : null, "files", file.id, {
+        ...file,
+        folderId: destination,
+      });
+    else {
+      const dot = file.name.lastIndexOf("."),
+        base = dot > 0 ? file.name.slice(0, dot) : file.name,
+        ext = dot > 0 ? file.name.slice(dot) : "";
+      let count = 1,
+        name;
+      do {
+        name =
+          base.slice(0, 250) +
+          " (copy" +
+          (count > 1 ? " " + count : "") +
+          ")" +
+          ext;
+        count++;
+      } while (
+        Object.values(library.files || {}).some(
+          (f) => f.name === name && (f.folderId || "") === destination,
+        )
+      );
+      const id = uid();
+      await model.write(teamScope ? team.id : null, "files", id, {
+        ...file,
+        id,
+        name,
+        folderId: destination,
+        createdAt: Date.now(),
+        createdBy: user.id,
+      });
+    }
+    onNotice(operation === "move" ? "File moved." : "File copied.");
+  }
   async function fileDownload(file) {
     await run(() => downloadAttachment(file), "Download started.", false);
-  }
-  async function selectImport(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setError("Choose a JSON backup smaller than 8 MB.");
-      return;
-    }
-    try {
-      const next = validateBackup(await file.text());
-      setBackup(next);
-      open("import");
-    } catch (err) {
-      setError(friendlyError(err));
-    }
-  }
-  async function importRecords() {
-    await run(async () => {
-      if (backup.project && !team)
-        throw new Error("Select a team before importing project records.");
-      const operations = [];
-      const queue = (teamId, collection, id, value) =>
-        operations.push({ teamId, collection, id, value });
-      const now = Date.now();
-      const folderMap = new Map(),
-        workspaceMap = new Map();
-      for (const f of Object.values(backup.library?.folders || {})) {
-        const id = uid();
-        folderMap.set(f.id, id);
-        queue(null, "folders", id, {
-          id,
-          name: f.name,
-          createdAt: now,
-          createdBy: user.id,
-        });
-      }
-      for (const f of Object.values(backup.library?.files || {})) {
-        const id = uid();
-        queue(null, "files", id, {
-          id,
-          name: f.name,
-          url: f.url,
-          kind: f.kind,
-          size: f.size,
-          folderId: folderMap.get(f.folderId) || "",
-          createdAt: now,
-          createdBy: user.id,
-          workspaceId: "",
-        });
-      }
-      if (backup.project) {
-        if (!team)
-          throw new Error("Select a team before importing project records.");
-        for (const w of Object.values(backup.project.workspaces || {})) {
-          const id = uid();
-          workspaceMap.set(w.id, id);
-          queue(team.id, "workspaces", id, {
-            id,
-            name: w.name,
-            description: String(w.description || "").slice(0, 200),
-            createdAt: now,
-            createdBy: user.id,
-          });
-        }
-        for (const key of ["tasks", "events", "topics", "folders", "files"])
-          for (const item of Object.values(backup.project[key] || {})) {
-            const id = uid();
-            const base = {
-              id,
-              workspaceId: workspaceMap.get(item.workspaceId) || workspaceId,
-              createdAt: now,
-              createdBy: user.id,
-            };
-            let record;
-            if (key === "tasks")
-              record = {
-                ...base,
-                title: item.title,
-                status: item.status,
-                priority: item.priority,
-                due: item.due,
-                assignee: team.members?.[item.assignee]
-                  ? item.assignee
-                  : user.id,
-              };
-            if (key === "events")
-              record = {
-                ...base,
-                title: item.title,
-                date: item.date,
-                time: item.time,
-                description: String(item.description || "").slice(0, 500),
-              };
-            if (key === "topics") {
-              record = {
-                ...base,
-                title: item.title,
-                body: item.body,
-                name: user.name,
-              };
-              const replies = {};
-              for (const old of Object.values(item.replies || {})) {
-                const replyId = uid();
-                replies[replyId] = {
-                  id: replyId,
-                  text: old.text,
-                  name: user.name,
-                  createdBy: user.id,
-                  createdAt: now,
-                };
-              }
-              if (Object.keys(replies).length) record.replies = replies;
-            }
-            if (key === "folders") {
-              folderMap.set("team_" + item.id, id);
-              record = { ...base, name: item.name };
-            }
-            if (key === "files")
-              record = {
-                ...base,
-                name: item.name,
-                url: item.url,
-                kind: item.kind,
-                size: item.size,
-                folderId: folderMap.get("team_" + item.folderId) || "",
-              };
-            queue(team.id, key, id, record);
-          }
-      }
-      if (!operations.length)
-        throw new Error("This backup does not contain records to import.");
-      await model.importBatch(operations);
-    }, "Backup imported as new records. Existing records were kept.");
   }
   async function remove() {
     const { collection, id, teamId, workspaceDelete, member } = dialog.item;
@@ -456,7 +371,7 @@ export default function Collaboration({
                   "Discuss project topics and keep replies together.",
                 Storage: "Upload, organize and share your project files.",
                 Notifications: "Messages, calls and assigned work.",
-                Settings: "Appearance, notifications and backups.",
+                Settings: "Appearance and notification preferences.",
                 Profile: demo
                   ? "Update your profile details."
                   : "Update your profile and password.",
@@ -464,6 +379,58 @@ export default function Collaboration({
             }
           </p>
         </div>
+        {view === "Teams" && (
+          <button className="primary" onClick={() => open("team")}>
+            <Plus size={16} />
+            Create team
+          </button>
+        )}
+        {view === "Workspaces" && team && (
+          <button className="primary" onClick={() => open("workspace")}>
+            <Plus size={16} />
+            New project
+          </button>
+        )}
+        {view === "Tasks" && team && (
+          <button
+            className="primary"
+            disabled={!workspace}
+            onClick={() => open("task")}
+          >
+            <Plus size={16} />
+            New task
+          </button>
+        )}
+        {view === "Calendar" && team && (
+          <button
+            className="primary"
+            disabled={!workspace}
+            onClick={() => open("event", { date: calendarDate })}
+          >
+            <Plus size={16} />
+            New event
+          </button>
+        )}
+        {view === "Discussions" && team && (
+          <button
+            className="primary"
+            disabled={!workspace}
+            onClick={() => open("topic")}
+          >
+            <Plus size={16} />
+            New post
+          </button>
+        )}
+        {view === "Storage" && (
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() => upload.current.click()}
+          >
+            <Upload size={16} />
+            {busy ? "Working…" : "Upload file"}
+          </button>
+        )}
       </header>
       {(error || model.error) && (
         <div className="error" role="alert">
@@ -483,10 +450,11 @@ export default function Collaboration({
       {!["Profile", "Notifications", "Dashboard", "Settings"].includes(
         view,
       ) && (
-        <div className="module-context">
+        <div className="module-context compact-context">
           {!(view === "Storage" && scope === "personal") && (
-            <label>
-              Team
+            <label className="context-picker">
+              <Users size={16} />
+              <span className="sr-only">Team</span>
               <select
                 aria-label="Selected team"
                 value={team?.id || ""}
@@ -507,8 +475,9 @@ export default function Collaboration({
             </label>
           )}
           {!["Teams", "Storage", "Settings"].includes(view) && (
-            <label>
-              Project
+            <label className="context-picker">
+              <LayoutGrid size={16} />
+              <span className="sr-only">Project</span>
               <select
                 aria-label="Selected project"
                 value={workspaceId}
@@ -524,13 +493,14 @@ export default function Collaboration({
               </select>
             </label>
           )}
-          <label className="module-search">
-            Search
+          <label className="module-search context-search">
+            <Search size={16} />
+            <span className="sr-only">Search</span>
             <input
               aria-label="Search this section"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search…"
+              placeholder="Search this section…"
             />
           </label>
         </div>
@@ -541,58 +511,140 @@ export default function Collaboration({
           teams={model.teams}
           library={model.library}
           user={user}
-          notifications={notifications}
-          preferences={preferences}
+          users={users}
           onNavigate={onNavigate}
+          onTeam={(id) => {
+            setContext({ teamId: id, workspaceId: "" });
+            onNavigate("Teams");
+          }}
+          onCalendar={(date) => {
+            setContext({ ...context, calendarDate: date });
+            onNavigate("Calendar");
+          }}
         />
       )}
-      {view === "Teams" && (
-        <>
-          <div className="module-toolbar">
-            <span>{Object.keys(model.teams).length} teams</span>
-            <button className="primary" onClick={() => open("team")}>
-              <Plus size={16} /> Create team
-            </button>
-          </div>
-          {team ? (
-            <section className="module-card">
-              <h2>{team.name}</h2>
-              <p>
-                {Object.keys(team.members || {}).length} members ·{" "}
-                {owner ? "You are the owner" : "Team member"}
-              </p>
-              <div className="member-list">
-                {Object.values(team.members || {}).map((m) => (
-                  <div key={m.id}>
-                    <span>
-                      {users[m.id]?.name || m.name}
-                      {m.id === team.owner ? " (owner)" : ""}
-                    </span>
-                    {owner && m.id !== team.owner && (
-                      <button
-                        className="icon-button"
-                        aria-label={"Remove " + m.name}
-                        onClick={() => askRemove("members", m)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                ))}
+      {view === "Teams" &&
+        (team ? (
+          <section className="team-directory">
+            <div className="section-heading">
+              <div>
+                <h2>{team.name}</h2>
+                <p className="small-note">
+                  {Object.keys(team.members || {}).length} members ·{" "}
+                  {owner ? "You are the owner" : "Team member"}
+                </p>
               </div>
               {owner && (
                 <button className="secondary" onClick={() => open("member")}>
                   Add registered user
                 </button>
               )}
-            </section>
-          ) : (
-            <Empty title="No teams yet">
-              Create a team, then add registered classmates.
-            </Empty>
-          )}
-        </>
-      )}
+            </div>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Open tasks</th>
+                    <th>
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.values(team.members || {})
+                    .filter((m) => match(users[m.id]?.name || m.name))
+                    .map((m) => (
+                      <tr key={m.id}>
+                        <td>
+                          <div className="member-cell">
+                            <span className="person-initials">
+                              {(users[m.id]?.name || m.name)
+                                .split(" ")
+                                .map((n) => n[0])
+                                .slice(0, 2)
+                                .join("")}
+                            </span>
+                            <div>
+                              <strong>{users[m.id]?.name || m.name}</strong>
+                              {m.id === user.id && <small>{user.email}</small>}
+                            </div>
+                          </div>
+                        </td>
+                        <td>{m.id === team.owner ? "Owner" : "Member"}</td>
+                        <td>
+                          <span
+                            className={
+                              "member-state " +
+                              (m.status === "on hold" ? "held" : "active")
+                            }
+                          >
+                            {m.status === "on hold" ? "Access paused" : "Active"}
+                          </span>
+                        </td>
+                        <td>
+                          {
+                            Object.values(team.tasks || {}).filter(
+                              (t) => t.assignee === m.id && t.status !== "Done",
+                            ).length
+                          }
+                        </td>
+                        <td>
+                          {owner && m.id !== team.owner && (
+                            <ActionMenu
+                              label={"Member options for " + m.name}
+                              actions={[
+                                {
+                                  label:
+                                    m.status === "on hold"
+                                      ? "Restore access"
+                                      : "Pause access",
+                                  onSelect: () =>
+                                    run(
+                                      () =>
+                                        model.setMemberStatus(
+                                          team.id,
+                                          m.id,
+                                          m.status === "on hold"
+                                            ? "active"
+                                            : "on hold",
+                                        ),
+                                      m.status === "on hold"
+                                        ? "Member access restored."
+                                        : "Member access paused.",
+                                      false,
+                                    ),
+                                },
+                                ...(m.status !== "on hold"
+                                  ? [
+                                      {
+                                        label: "Transfer ownership",
+                                        onSelect: () => open("ownership", m),
+                                      },
+                                    ]
+                                  : []),
+                                {
+                                  label: "Remove member",
+                                  danger: true,
+                                  onSelect: () => askRemove("members", m),
+                                },
+                              ]}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : (
+          <Empty title="No teams yet">
+            Create a team, then add registered classmates.
+          </Empty>
+        ))}
       {!team &&
         ["Tasks", "Calendar", "Discussions", "Workspaces"].includes(view) && (
           <Empty title="Select or create a team">
@@ -600,295 +652,202 @@ export default function Collaboration({
           </Empty>
         )}
       {view === "Workspaces" && team && (
-        <>
-          <div className="module-toolbar">
-            <span>{Object.keys(team.workspaces || {}).length} projects</span>
-            <button className="primary" onClick={() => open("workspace")}>
-              <Plus size={16} /> New project
-            </button>
-          </div>
-          <div className="workspace-grid">
-            {Object.values(team.workspaces || {})
-              .filter((w) => match(w.name))
-              .map((w) => (
-                <article className="module-card" key={w.id}>
-                  <h2>{w.name}</h2>
-                  <p>{w.description || "Project"}</p>
-                  <small>
-                    {
-                      Object.values(team.tasks || {}).filter(
-                        (t) => t.workspaceId === w.id && t.status === "Done",
-                      ).length
-                    }{" "}
-                    completed /{" "}
-                    {
-                      Object.values(team.tasks || {}).filter(
-                        (t) => t.workspaceId === w.id,
-                      ).length
-                    }{" "}
-                    tasks
-                  </small>
-                  <div className="record-actions">
-                    <button
-                      className="secondary"
-                      onClick={() => {
-                        setContext({ teamId: team.id, workspaceId: w.id });
-                        onNavigate("Tasks");
-                      }}
-                    >
-                      Open project
-                    </button>
-                    <button
-                      className="icon-button"
-                      aria-label={"Edit " + w.name}
-                      onClick={() => open("workspace", w)}
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    {owner && (
-                      <button
-                        className="icon-button"
-                        aria-label={"Delete " + w.name}
-                        onClick={() => askRemove("workspaces", w)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
-                </article>
-              ))}
-          </div>
-        </>
+        <div className="table-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Project</th>
+                <th>Progress</th>
+                <th>Tasks</th>
+                <th>Created</th>
+                <th>
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.values(team.workspaces || {})
+                .filter((w) => match(w.name))
+                .map((w) => {
+                  const projectTasks = Object.values(team.tasks || {}).filter(
+                      (t) => t.workspaceId === w.id,
+                    ),
+                    done = projectTasks.filter(
+                      (t) => t.status === "Done",
+                    ).length;
+                  return (
+                    <tr key={w.id}>
+                      <td>
+                        <button
+                          className="table-link"
+                          onClick={() => {
+                            setContext({ teamId: team.id, workspaceId: w.id });
+                            onNavigate("Tasks");
+                          }}
+                        >
+                          {w.name}
+                        </button>
+                        <small className="table-description">
+                          {w.description || "Team project"}
+                        </small>
+                      </td>
+                      <td>
+                        <div className="project-progress">
+                          <span
+                            style={{
+                              width:
+                                (projectTasks.length
+                                  ? (done / projectTasks.length) * 100
+                                  : 0) + "%",
+                            }}
+                          />
+                        </div>
+                        <small>
+                          {projectTasks.length
+                            ? Math.round((done / projectTasks.length) * 100)
+                            : 0}
+                          % complete
+                        </small>
+                      </td>
+                      <td>
+                        {done} / {projectTasks.length}
+                      </td>
+                      <td>{new Date(w.createdAt).toLocaleDateString()}</td>
+                      <td>
+                        <ActionMenu
+                          label={"Project options for " + w.name}
+                          actions={[
+                            {
+                              label: "Open project",
+                              onSelect: () => {
+                                setContext({
+                                  teamId: team.id,
+                                  workspaceId: w.id,
+                                });
+                                onNavigate("Tasks");
+                              },
+                            },
+                            {
+                              label: "Edit project",
+                              onSelect: () => open("workspace", w),
+                            },
+                            ...(owner
+                              ? [
+                                  {
+                                    label: "Delete project",
+                                    danger: true,
+                                    onSelect: () => askRemove("workspaces", w),
+                                  },
+                                ]
+                              : []),
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
       )}
       {view === "Tasks" && team && (
-        <>
-          <div className="module-toolbar">
-            <select
-              aria-label="Task filter"
-              value={taskFilter}
-              onChange={(e) => setTaskFilter(e.target.value)}
-            >
-              <option>All</option>
-              <option>Assigned to me</option>
-              <option>Overdue</option>
-            </select>
-            <div>
-              <button
-                className="secondary"
-                onClick={() =>
-                  download("flabbychat-tasks.csv", taskCsv(tasks), "text/csv")
-                }
-              >
-                Export CSV
-              </button>{" "}
-              <button
-                className="primary"
-                disabled={!workspace}
-                onClick={() => open("task")}
-              >
-                <Plus size={16} /> New task
-              </button>
-            </div>
-          </div>
-          <div className="task-board">
-            {["To do", "In progress", "Done"].map((status) => (
-              <section key={status}>
-                <h2>
-                  {status}{" "}
-                  <small>
-                    {tasks.filter((t) => t.status === status).length}
-                  </small>
-                </h2>
-                {tasks
-                  .filter(
-                    (t) =>
-                      t.status === status &&
-                      match(t.title) &&
-                      (taskFilter !== "Assigned to me" ||
-                        t.assignee === user.id) &&
-                      (taskFilter !== "Overdue" ||
-                        (t.due < localDate() && t.status !== "Done")),
-                  )
-                  .map((t) => (
-                    <article className="module-card task-record" key={t.id}>
-                      <span className={"priority-tag " + t.priority}>
-                        {t.priority}
-                      </span>
-                      <h3>{t.title}</h3>
-                      <p>{users[t.assignee]?.name || "Unassigned"}</p>
-                      <small
-                        className={
-                          t.due < localDate() && t.status !== "Done"
-                            ? "overdue"
-                            : ""
-                        }
-                      >
-                        Due {t.due}
-                      </small>
-                      <div className="record-actions">
-                        <select
-                          aria-label={"Status for " + t.title}
-                          value={t.status}
-                          onChange={(e) =>
-                            run(
-                              () =>
-                                model.write(team.id, "tasks", t.id, {
-                                  ...t,
-                                  status: e.target.value,
-                                  updatedAt: Date.now(),
-                                }),
-                              "Task status updated.",
-                              false,
-                            )
-                          }
-                        >
-                          {["To do", "In progress", "Done"].map((s) => (
-                            <option key={s}>{s}</option>
-                          ))}
-                        </select>
-                        <button
-                          className="icon-button"
-                          aria-label={"Edit task " + t.title}
-                          onClick={() => open("task", t)}
-                        >
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          className="icon-button"
-                          aria-label={"Delete task " + t.title}
-                          onClick={() => askRemove("tasks", t)}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-              </section>
-            ))}
-          </div>
-          {!tasks.length && (
-            <Empty title="No tasks yet">
-              Create a task and assign it to a team member.
-            </Empty>
-          )}
-        </>
+        <TaskBoard
+          tasks={tasks}
+          users={users}
+          user={user}
+          filter={taskFilter}
+          onFilter={setTaskFilter}
+          search={search}
+          onCreate={() => open("task")}
+          onEdit={(t) => open("task", t)}
+          onRemove={(t) => askRemove("tasks", t)}
+          onStatus={(t, status) =>
+            run(
+              () =>
+                model.write(team.id, "tasks", t.id, {
+                  ...t,
+                  status,
+                  updatedAt: Date.now(),
+                }),
+              "Task status updated.",
+              false,
+            )
+          }
+          onExport={() =>
+            download("flabbychat-tasks.csv", taskCsv(tasks), "text/csv")
+          }
+        />
       )}
       {view === "Calendar" && team && (
-        <>
-          <div className="module-toolbar">
-            <input
-              type="month"
-              aria-label="Calendar month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-            />
-            <button
-              className="primary"
-              disabled={!workspace}
-              onClick={() => open("event")}
-            >
-              <Plus size={16} /> New event
-            </button>
-          </div>
-          <div className="calendar-grid">
-            {Array.from(
-              {
-                length: new Date(
-                  Number(month.slice(0, 4)),
-                  Number(month.slice(5)),
-                  0,
-                ).getDate(),
-              },
-              (_, index) => {
-                const date = month + "-" + String(index + 1).padStart(2, "0");
-                return (
-                  <button
-                    key={date}
-                    className={date === localDate() ? "today" : ""}
-                    onClick={() => open("event", { date })}
-                  >
-                    <strong>{index + 1}</strong>
-                    {events
-                      .filter((e) => e.date === date)
-                      .map((e) => (
-                        <span key={e.id}>
-                          {e.time} {e.title}
-                        </span>
-                      ))}
-                  </button>
-                );
-              },
-            )}
-          </div>
-          <p className="small-note">Times use your local time zone.</p>
-          {events
-            .filter((e) => e.date.startsWith(month) && match(e.title))
-            .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-            .map((e) => (
-              <article className="module-card list-record" key={e.id}>
-                <div>
-                  <h3>{e.title}</h3>
-                  <p>
-                    {e.date} · {e.time} · {e.description}
-                  </p>
-                </div>
-                <button
-                  className="icon-button"
-                  aria-label={"Edit event " + e.title}
-                  onClick={() => open("event", e)}
-                >
-                  <Edit2 size={16} />
-                </button>
-                <button
-                  className="icon-button"
-                  aria-label={"Delete event " + e.title}
-                  onClick={() => askRemove("events", e)}
-                >
-                  <Trash2 size={16} />
-                </button>
-              </article>
-            ))}
-        </>
+        <CalendarPanel
+          events={events}
+          initialDate={context.calendarDate}
+          onDateChange={setCalendarDate}
+          canCreate={Boolean(workspace)}
+          search={search}
+          onCreate={(date) => open("event", date)}
+          onEdit={(e) => open("event", e)}
+          onRemove={(e) => askRemove("events", e)}
+        />
       )}
       {view === "Discussions" && team && (
         <>
           <div className="module-toolbar">
             <span>{topics.length} topics</span>
-            <button
-              className="primary"
-              disabled={!workspace}
-              onClick={() => open("topic")}
-            >
-              <Plus size={16} /> New post
-            </button>
           </div>
-          {topics
-            .filter((t) => match(t.title + " " + t.body))
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .map((t) => (
-              <article className="module-card list-record" key={t.id}>
-                <button
-                  className="topic-open"
-                  onClick={() => open("discussion", t)}
-                >
-                  <h3>{t.title}</h3>
-                  <p>{t.body.slice(0, 150)}</p>
-                  <small>
-                    {t.name} · {new Date(t.createdAt).toLocaleString()} ·{" "}
-                    {Object.keys(t.replies || {}).length} replies
-                  </small>
-                </button>
-                {t.createdBy === user.id && (
+          <div className="board-posts">
+            {topics
+              .filter((t) => match(t.title + " " + t.body))
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map((t) => (
+                <article className="board-post" key={t.id}>
+                  <div className="post-author">
+                    <span className="person-initials">
+                      {(t.name || "?")
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")}
+                    </span>
+                    <div>
+                      <strong>{t.name}</strong>
+                      <small>{new Date(t.createdAt).toLocaleString()}</small>
+                    </div>
+                  </div>
                   <button
-                    className="icon-button"
-                    aria-label={"Delete discussion " + t.title}
-                    onClick={() => askRemove("topics", t)}
+                    className="topic-open"
+                    onClick={() => open("discussion", t)}
                   >
-                    <Trash2 size={16} />
+                    <h3>{t.title}</h3>
+                    <p>{t.body.slice(0, 150)}</p>
+                    <small>
+                      {t.name} · {new Date(t.createdAt).toLocaleString()} ·{" "}
+                      {Object.keys(t.replies || {}).length} replies
+                    </small>
                   </button>
-                )}
-              </article>
-            ))}
+                  <div className="post-footer">
+                    <button
+                      className="text-button"
+                      onClick={() => open("discussion", t)}
+                    >
+                      {Object.keys(t.replies || {}).length} replies
+                    </button>
+                    {t.createdBy === user.id && (
+                      <ActionMenu
+                        label={"Post options for " + t.title}
+                        actions={[
+                          {
+                            label: "Delete post",
+                            danger: true,
+                            onSelect: () => askRemove("topics", t),
+                          },
+                        ]}
+                      />
+                    )}
+                  </div>
+                </article>
+              ))}
+          </div>
           {!topics.length && (
             <Empty title="No discussions yet">
               Start a topic for questions, decisions or project ideas.
@@ -924,14 +883,6 @@ export default function Collaboration({
               <button className="secondary" onClick={() => open("folder")}>
                 New folder
               </button>{" "}
-              <button
-                className="primary"
-                disabled={busy}
-                onClick={() => upload.current.click()}
-              >
-                <Upload size={16} />
-                {busy ? "Working…" : "Upload file"}
-              </button>
             </div>
           </div>
           <p className="small-note">
@@ -992,63 +943,41 @@ export default function Collaboration({
                     {(f.size / 1024).toFixed(0)} KB ·{" "}
                     {new Date(f.createdAt).toLocaleDateString()}
                   </small>
-                  <select
-                    aria-label={"Folder for " + f.name}
-                    value={f.folderId || ""}
-                    onChange={(e) =>
-                      run(
-                        () =>
-                          model.write(
-                            teamScope ? team.id : null,
-                            "files",
-                            f.id,
-                            { ...f, folderId: e.target.value },
-                          ),
-                        "File moved.",
-                        false,
-                      )
-                    }
-                  >
-                    <option value="">No folder</option>
-                    {Object.values(library.folders || {}).map((folder) => (
-                      <option key={folder.id} value={folder.id}>
-                        {folder.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
-                <div className="file-actions">
-                  <button
-                    className="icon-button"
-                    title="Preview file"
-                    aria-label={"Open " + f.name}
-                    onClick={() => onPreview(f)}
-                  >
-                    <Eye size={18} />
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={"Download " + f.name}
-                    onClick={() => fileDownload(f)}
-                  >
-                    <Download size={17} />
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={"Share " + f.name + " in chat"}
-                    onClick={() => onShare(f)}
-                  >
-                    <Share2 size={17} />
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={"Remove file " + f.name}
-                    onClick={() =>
-                      askRemove("files", f, teamScope ? team.id : null)
-                    }
-                  >
-                    <Trash2 size={17} />
-                  </button>
+                <div className="file-actions" aria-label={"Actions for " + f.name}>
+                  <button className="icon-button" aria-label={"Preview " + f.name} onClick={() => onPreview(f)}><Eye size={16} /></button>
+                  <button className="icon-button" aria-label={"Download " + f.name} onClick={() => fileDownload(f)}><Download size={16} /></button>
+                  <button className="icon-button" aria-label={"Share " + f.name} onClick={() => onShare(f)}><Share2 size={16} /></button>
+                  <ActionMenu
+                    label={"File options for " + f.name}
+                    actions={[
+                    {
+                      label: "Duplicate file",
+                      onSelect: () =>
+                        run(
+                          () => transferFile(f, "copy", f.folderId || ""),
+                          null,
+                          false,
+                        ),
+                    },
+                    {
+                      label: "Copy to…",
+                      onSelect: () =>
+                        setTransfer({ file: f, operation: "copy" }),
+                    },
+                    {
+                      label: "Move to…",
+                      onSelect: () =>
+                        setTransfer({ file: f, operation: "move" }),
+                    },
+                    {
+                      label: "Remove file",
+                      danger: true,
+                      onSelect: () =>
+                        askRemove("files", f, teamScope ? team.id : null),
+                    },
+                    ]}
+                  />
                 </div>
               </article>
             ))}
@@ -1093,13 +1022,15 @@ export default function Collaboration({
           preferences={preferences}
           onSetting={onSetting}
           run={run}
-          team={team}
-          teams={model.teams}
-          library={model.library}
-          context={context}
-          setContext={setContext}
-          onImport={selectImport}
-          onNotice={onNotice}
+        />
+      )}
+      {transfer && (
+        <FileTransferDialog
+          {...transfer}
+          folders={library.folders}
+          libraryName={teamScope ? team.name : "My files"}
+          onClose={() => setTransfer(null)}
+          onTransfer={transferFile}
         />
       )}
       {dialog && (
@@ -1107,6 +1038,7 @@ export default function Collaboration({
           title={
             {
               team: "Create team",
+              ownership: "Transfer team ownership",
               member: "Add team member",
               workspace: dialog.item ? "Edit project" : "New project",
               task: dialog.item ? "Edit task" : "New task",
@@ -1116,7 +1048,6 @@ export default function Collaboration({
               discussion: activeTopic?.title || "Discussion",
               folder: "New folder",
               delete: "Remove this item?",
-              import: "Review backup import",
             }[dialog.type]
           }
           onClose={() => {
@@ -1131,7 +1062,36 @@ export default function Collaboration({
               {error}
             </p>
           )}
-          {dialog.type === "delete" ? (
+          {dialog.type === "ownership" ? (
+            <>
+              <p className="verification-copy">
+                Make <strong>{dialog.item.name}</strong> the owner of{" "}
+                <strong>{team.name}</strong>? You will remain a member and lose
+                owner-only management actions.
+              </p>
+              <div className="dialog-actions">
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => setDialog(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() =>
+                    run(
+                      () => model.transferOwnership(team.id, dialog.item.id),
+                      "Team ownership transferred.",
+                    )
+                  }
+                >
+                  {busy ? "Transferring…" : "Transfer ownership"}
+                </button>
+              </div>
+            </>
+          ) : dialog.type === "delete" ? (
             <>
               <p className="verification-copy">
                 This removes the selected record. Uploaded Cloudinary files
@@ -1149,40 +1109,6 @@ export default function Collaboration({
                   {busy ? "Removing…" : "Remove"}
                 </button>
               </div>
-            </>
-          ) : dialog.type === "import" ? (
-            <>
-              <p className="verification-copy">
-                Personal files:{" "}
-                {Object.keys(backup?.library?.files || {}).length}. Project
-                records:{" "}
-                {[
-                  "tasks",
-                  "events",
-                  "topics",
-                  "workspaces",
-                  "files",
-                  "folders",
-                ].reduce(
-                  (sum, key) =>
-                    sum + Object.keys(backup?.project?.[key] || {}).length,
-                  0,
-                )}
-                . New IDs will be created; existing data will not be replaced.
-                Imported records become yours.
-              </p>
-              {backup?.project && !team && (
-                <p className="error">
-                  Select or create a team before importing project records.
-                </p>
-              )}
-              <button
-                className="primary"
-                disabled={busy || Boolean(backup?.project && !team)}
-                onClick={importRecords}
-              >
-                {busy ? "Importing…" : "Import as new records"}
-              </button>
             </>
           ) : dialog.type === "discussion" ? (
             <>
@@ -1284,16 +1210,30 @@ export default function Collaboration({
               {dialog.type === "task" && (
                 <>
                   <label>
+                    Details
+                    <textarea
+                      name="description"
+                      maxLength={1000}
+                      defaultValue={dialog.item?.description || ""}
+                    />
+                  </label>
+                  <label>
                     Assignee
                     <select
                       name="assignee"
                       defaultValue={dialog.item?.assignee || user.id}
                     >
-                      {Object.values(team.members || {}).map((m) => (
-                        <option value={m.id} key={m.id}>
-                          {users[m.id]?.name || m.name}
-                        </option>
-                      ))}
+                      {Object.values(team.members || {})
+                        .filter(
+                          (m) =>
+                            m.status !== "on hold" ||
+                            m.id === dialog.item?.assignee,
+                        )
+                        .map((m) => (
+                          <option value={m.id} key={m.id}>
+                            {users[m.id]?.name || m.name}
+                          </option>
+                        ))}
                     </select>
                   </label>
                   <div className="form-row">
@@ -1397,164 +1337,5 @@ export default function Collaboration({
         </Dialog>
       )}
     </main>
-  );
-}
-function Dashboard({
-  teams,
-  library,
-  user,
-  notifications,
-  preferences,
-  onNavigate,
-}) {
-  const list = Object.values(teams),
-    tasks = list.flatMap((t) => Object.values(t.tasks || {})),
-    mine = tasks.filter((t) => t.assignee === user.id && t.status !== "Done"),
-    events = list
-      .flatMap((t) => Object.values(t.events || {}))
-      .filter((e) => e.date >= localDate())
-      .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-  return (
-    <>
-      <div className="dashboard-stats">
-        {[
-          ["Teams", list.length],
-          [
-            "Workspaces",
-            list.reduce(
-              (sum, t) => sum + Object.keys(t.workspaces || {}).length,
-              0,
-            ),
-          ],
-          [
-            "Tasks",
-            tasks.filter((t) => t.status === "Done").length +
-              " / " +
-              tasks.length,
-          ],
-          ["Storage", Object.keys(library.files || {}).length],
-          [
-            "Notifications",
-            notifications.filter((n) => !preferences.notificationRead?.[n.id])
-              .length,
-          ],
-        ].map(([name, value]) => (
-          <button
-            className="module-card"
-            key={name}
-            onClick={() => onNavigate(name)}
-          >
-            <strong>{value}</strong>
-            <span>
-              {name === "Tasks"
-                ? "Tasks completed"
-                : name === "Storage"
-                  ? "Personal files"
-                  : name === "Workspaces"
-                    ? "Projects"
-                    : name === "Notifications"
-                      ? "Notifications"
-                      : name}
-            </span>
-          </button>
-        ))}
-      </div>
-      <div className="dashboard-columns">
-        <section className="module-card">
-          <h2>Your upcoming tasks</h2>
-          {mine.length ? (
-            mine
-              .sort((a, b) => a.due.localeCompare(b.due))
-              .slice(0, 5)
-              .map((t) => (
-                <div className="dashboard-row" key={t.id}>
-                  <strong>{t.title}</strong>
-                  <small className={t.due < localDate() ? "overdue" : ""}>
-                    Due {t.due} · {t.status}
-                  </small>
-                </div>
-              ))
-          ) : (
-            <p>No unfinished tasks assigned to you.</p>
-          )}
-          <button className="secondary" onClick={() => onNavigate("Tasks")}>
-            Open tasks
-          </button>
-        </section>
-        <section className="module-card">
-          <h2>Upcoming events</h2>
-          {events.length ? (
-            events.slice(0, 5).map((e) => (
-              <div className="dashboard-row" key={e.id}>
-                <strong>{e.title}</strong>
-                <small>
-                  {e.date} · {e.time}
-                </small>
-              </div>
-            ))
-          ) : (
-            <p>No upcoming events.</p>
-          )}
-          <button className="secondary" onClick={() => onNavigate("Calendar")}>
-            Open calendar
-          </button>
-        </section>
-        <section className="module-card">
-          <h2>Recent notifications</h2>
-          {notifications.length ? (
-            notifications.slice(0, 4).map((n) => (
-              <div className="dashboard-row" key={n.id}>
-                <strong>{n.title}</strong>
-                <small>{n.detail}</small>
-              </div>
-            ))
-          ) : (
-            <p>You’re up to date.</p>
-          )}
-          <button
-            className="secondary"
-            onClick={() => onNavigate("Notifications")}
-          >
-            View notifications
-          </button>
-        </section>
-        <section className="module-card">
-          <h2>Quick access</h2>
-          <div className="dashboard-shortcuts">
-            {[
-              {
-                view: "Chat",
-                title: "Chat",
-                description: "Continue your conversations",
-                Icon: MessageCircle,
-              },
-              {
-                view: "Storage",
-                title: "Files",
-                description: "Find and share documents",
-                Icon: FolderOpen,
-              },
-              {
-                view: "Teams",
-                title: "Teams",
-                description: "Manage your project group",
-                Icon: Users,
-              },
-            ].map(({ view, title, description, Icon }) => (
-              <button key={view} onClick={() => onNavigate(view)}>
-                <span className="shortcut-icon">
-                  <Icon size={19} />
-                </span>
-                <span className="shortcut-copy">
-                  <strong>{title}</strong>
-                  <small>{description}</small>
-                </span>
-                <ArrowRight size={16} />
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
-    </>
   );
 }

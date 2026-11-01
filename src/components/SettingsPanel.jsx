@@ -1,24 +1,14 @@
-import React, { useRef, useState } from "react";
-import { Palette, Bell, HardDrive, Download, Upload } from "lucide-react";
-import { download, makeBackup } from "../utils/collaboration-data.js";
+import React, { useState } from "react";
+import { Palette, Bell } from "lucide-react";
 export default function SettingsPanel({
   preferences,
   onSetting,
   run,
-  team,
-  teams,
-  library,
-  context,
-  setContext,
-  onImport,
-  onNotice,
 }) {
   const [section, setSection] = useState("Appearance");
-  const importer = useRef(null);
   const sections = [
     ["Appearance", Palette],
     ["Notifications", Bell],
-    ["Backup", HardDrive],
   ];
   return (
     <div className="account-layout settings-layout">
@@ -62,6 +52,29 @@ export default function SettingsPanel({
             <option value="system">Use system theme</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
+          </select>
+        </div>
+        <div className="setting-row">
+          <div className="setting-copy">
+          <label htmlFor="chat-layout">Message layout</label>
+            <p>
+              Choose a single reading flow or a compact two-sided conversation.
+            </p>
+          </div>
+          <select
+            id="chat-layout"
+            aria-label="Message layout"
+            value={preferences.settings?.chatLayout || "list"}
+            onChange={(e) =>
+              run(
+                () => onSetting("chatLayout", e.target.value),
+                "Chat layout updated.",
+                false,
+              )
+            }
+          >
+            <option value="list">Standard conversation</option>
+            <option value="bubbles">Split conversation</option>
           </select>
         </div>
         <div className="theme-sample" aria-hidden="true">
@@ -150,86 +163,6 @@ export default function SettingsPanel({
         <p className="account-note">
           Keep the app open to receive calls and browser notifications.
         </p>
-      </section>
-      <section
-        className="module-card account-card"
-        hidden={section !== "Backup"}
-      >
-        <header className="account-card-heading">
-          <h2>Backup</h2>
-          <p>Save a copy of your records or import an existing backup.</p>
-        </header>
-        <div className="setting-row">
-          <div className="setting-copy">
-            <label htmlFor="backup-team">Team to include</label>
-            <p>Your personal library is included automatically.</p>
-          </div>
-          <select
-            id="backup-team"
-            aria-label="Backup team"
-            value={team?.id || ""}
-            onChange={(e) =>
-              setContext({
-                ...context,
-                teamId: e.target.value,
-                workspaceId: "",
-              })
-            }
-          >
-            {!team && <option value="">Personal files only</option>}
-            {Object.values(teams).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="setting-row">
-          <div className="setting-copy">
-            <strong>Export backup</strong>
-            <p>Download personal files and selected-team project records.</p>
-          </div>
-          <button
-            className="secondary"
-            onClick={() => {
-              download(
-                "flabbychat-backup.json",
-                JSON.stringify(makeBackup(library, team), null, 2),
-              );
-              onNotice(
-                "Backup exported. File links are included; cloud file contents are not copied.",
-              );
-            }}
-          >
-            <Download size={16} />
-            Export JSON
-          </button>
-        </div>
-        <div className="setting-row">
-          <div className="setting-copy">
-            <strong>Import backup</strong>
-            <p>Review a JSON backup before adding its records.</p>
-          </div>
-          <button
-            className="secondary"
-            onClick={() => importer.current.click()}
-          >
-            <Upload size={16} />
-            Import JSON
-          </button>
-        </div>
-        <p className="account-note">
-          Backups include file links, not cloud file contents. Passwords and
-          team memberships are excluded.
-        </p>
-        <input
-          ref={importer}
-          hidden
-          type="file"
-          accept="application/json,.json"
-          aria-label="Import backup"
-          onChange={onImport}
-        />
       </section>
     </div>
   );
