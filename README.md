@@ -6,7 +6,7 @@ A college collaboration app for conversations, calls and project work.
 
 FlabbyChat brings group chat, private messages, tasks and shared documents into one React application. Firebase handles verified accounts and real-time data, Cloudinary stores images and PDFs, and WebRTC supports private calls. The original logo is retained, with its cyan/violet colors used in light and near-black dark themes.
 
-Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections and simple dividers inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu and search buttons; search expands below it.
+Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections, subtle surfaces and spacing inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu, search and account buttons; search expands below it.
 
 ## Features
 
@@ -14,14 +14,16 @@ Dashboard opens after login. The approved layout separates the sidebar, header a
 - Profile name, photo and bio editing, verified email display and password changes with current-password confirmation.
 - Channels and private chats with search, image/PDF attachments, conversation drafts, timestamps, replies and message actions.
 - Favorites for channels and private chats.
+- Green/red presence dots show visible, connected sessions. Hidden tabs, logout and disconnects go offline; multiple tabs are tracked independently.
 - Voice/video calls with calling sounds, mute/camera controls, snapshots, outcomes and duration in chat history. Calling controls appear only in supported, signed-in private chats; channels and demo sessions do not show them.
 - Teams with owner-managed membership, pause/restore access, ownership transfer and separate projects.
 - Assigned tasks with deadlines, priorities, status, filters and CSV export.
-- Project calendar and discussion boards with replies.
+- Day, week, month and year calendar views, event details and discussion boards with replies.
+- Dashboard task-progress chart with completion percentage, assigned tasks, upcoming events, a small calendar and team members.
 - Personal/team file libraries with compact folder rows, search, in-app previews, downloads, sharing and copy/move actions.
 - Images and PDFs open inside the app in a popup. PDF.js provides page navigation and zoom without a browser PDF plugin or external viewer.
 - Notification dropdown with unread filtering and read actions; optional browser notifications.
-- Light, dark and system themes; standard and compact split-message layouts.
+- Light, dark and system themes; left-aligned or compact two-sided messages, plus a 12/24-hour clock preference.
 - Settings grouped into Appearance and Notifications; Profile split into Details and Password. Text buttons use a shared 40 px minimum height on desktop and 44 px on mobile; icon controls use 36 px and 44 px respectively. Small dismissible toasts confirm success, while errors stay beside the relevant form or field.
 
 ## Stack
@@ -61,7 +63,7 @@ Cloud data lives under `collegeChat`. Existing channel/private-message paths are
 3. Under **Settings > Security**, enable **Allow delivery of PDF and ZIP files**. The app accepts supported images and PDFs, not ZIPs.
 4. Set `VITE_CLOUDINARY_CLOUD_NAME` and `VITE_CLOUDINARY_UPLOAD_PRESET` in `.env.local`, then restart Vite.
 
-The app checks a 5 MB file limit. Cloudinary presets restrict formats but do not offer a per-preset size limit. Anyone holding a delivery link can open the file, including links shared in private chats. Library permissions protect metadata rather than Cloudinary delivery. Removing a message or library reference does not delete the Cloudinary asset.
+The app checks a 5 MB file limit. Restrict allowed formats in the Cloudinary preset, and check the upload limits supported by your account. Anyone holding a delivery link can open the file, including links shared in private chats. Library permissions protect metadata rather than Cloudinary delivery. Removing a message or library reference does not delete the Cloudinary asset.
 
 Without Cloudinary, small images can use the database fallback. Demo files are limited to 250 KB. Provider and browser quotas still apply.
 
@@ -69,7 +71,9 @@ Without Cloudinary, small images can use the database fallback. Demo files are l
 
 Create a team, add registered users and create/select a project. Tasks, calendar events and discussion posts belong to the selected project. Team files are shared with that team's members; personal files belong to your own library. Sharing a file opens a conversation selector and attaches it as a draft. Press Send to publish it to that chat.
 
-The file library keeps documents in their selected personal or team folder. Preview, download and share controls remain visible; duplicate, copy-to, move-to and remove actions are grouped in the file menu. Files are opened inside the app. Unsent chat drafts last while the app is open and are not restored after a reload.
+File tiles keep preview, download and share visible, while the three-dot menu contains Make a copy, Copy to, Move to and Remove file. Copy/move destinations open in an in-app folder dialog.
+
+Documents stay in their selected personal or team folder and open inside the app. Unsent chat drafts last while the app is open and are not restored after a reload.
 
 ## Commands and checks
 
@@ -79,7 +83,7 @@ npm run build
 npm run preview
 ```
 
-Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest local run passed 68 tests across 12 files. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
+Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest local run passed 79 tests across 15 files. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
 
 Production output goes to `build/`. Firebase hosting configuration and database rules are included. After reviewing the rules and checking cloud workflows, deployment can be run explicitly with Firebase CLI:
 
@@ -95,9 +99,17 @@ firebase deploy --only hosting,database --project YOUR_PROJECT_ID
 - Add the final hostname to Firebase Authentication's authorized domains. For a custom domain, connect it in Firebase Hosting and apply the DNS records shown by the console. Use HTTPS for microphone/camera access outside localhost.
 - After deployment, verify signup, email verification, password reset, uploads and a call between two verified accounts on separate devices. Browser permission settings and a TURN relay may affect calling.
 
+## Presence setup
+
+Publish the included `database.rules.json` in Firebase Console > Realtime Database > Rules. Presence now stores per-tab records at `collegeChat/presence/{uid}/sessions/{sessionId}`; older rules will reject that structure. Old flat online flags are ignored so stale records cannot keep a user online. Green means a verified account has at least one visible, connected FlabbyChat tab; red means no visible session is connected. Closing a tab or losing the network relies on Firebase disconnect detection, which may take a moment.
+
+## Before public use
+
+Deploy the current database rules and frontend, configure your production domain in Firebase Authentication, and verify both accounts on two devices. Set up a TURN service for calls across restrictive networks. For a wider public audience, add signed uploads/private file delivery where required, App Check, abuse controls and monitoring. Review provider quotas and add pagination before supporting large message histories. The current unsigned Cloudinary links are intended for ordinary project material.
+
 ## Verification status
 
-The production build and automated tests pass locally. Browser review covered desktop/mobile navigation, Settings, Profile, notification dropdowns, file folders, a PDF preview, zoom, closing the viewer and downloading a local test file. Configuration checks confirmed the required Firebase and Cloudinary variables are present; they do not verify the provider-console settings or published rules. The dependency audit reported zero vulnerabilities after updating the test runner and the pinned Firebase transport dependency.
+The production build and automated tests pass locally. The latest desktop review verified that calendar content scrolls without moving the header/sidebar. Section changes now reset the content scroll position. Browser review covered desktop/mobile navigation, Settings, Profile, notification dropdowns, file folders, a PDF preview, zoom, closing the viewer and downloading a local test file. Configuration checks confirmed the required Firebase and Cloudinary variables are present; they do not verify the provider-console settings or published rules. The dependency audit reported zero vulnerabilities after updating the test runner and the pinned Firebase transport dependency.
 
 ## Project structure
 

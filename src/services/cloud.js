@@ -25,7 +25,7 @@ import {
   runTransaction,
   serverTimestamp,
 } from "firebase/database";
-import { general } from "../utils/chat-data.js";
+import { general, uid } from "../utils/chat-data.js";
 const env = import.meta.env;
 export const configured = Boolean(
   env.VITE_FIREBASE_API_KEY &&
@@ -53,7 +53,22 @@ export async function signup(name, email, password) {
   await updateProfile(result.user, { displayName: name });
   return result.user;
 }
-export const logout = () => signOut(auth);
+const presenceStops = new Set();
+export async function logout() {
+  const cleanup = Promise.all([...presenceStops].map((stop) => stop()));
+  let timeout;
+  try {
+    await Promise.race([
+      cleanup,
+      new Promise((resolve) => {
+        timeout = setTimeout(resolve, 2000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+  return signOut(auth);
+}
 export const resetPassword = (email) => sendPasswordResetEmail(auth, email);
 // Share one pending request across remounts, and limit resend to once a minute.
 const verificationRequests = new Map();
@@ -110,7 +125,16 @@ export function watchDirectory(callback, onError) {
   const stopPresence = onValue(
     path("presence"),
     (snap) => {
-      presence = snap.val() || {};
+      presence = Object.fromEntries(
+        Object.entries(snap.val() || {}).map(([id, value]) => [
+          id,
+          {
+            online: Object.values(value.sessions || {}).some(
+              (visible) => visible === true,
+            ),
+          },
+        ]),
+      );
       emit();
     },
     onError,
@@ -122,30 +146,59 @@ export function watchDirectory(callback, onError) {
   };
 }
 export function trackPresence(userId) {
-  const target = path("presence/" + userId);
-  let active = true;
-  const stop = onValue(ref(db, ".info/connected"), async (snapshot) => {
-    if (!snapshot.val()) return;
+  // Each tab owns its own session so closing a background tab cannot hide another.
+  const target = path("presence/" + userId + "/sessions/" + uid());
+  let active = true,
+    connected = false,
+    ready = false,
+    pageVisible = !document.hidden;
+  const publish = () => {
+    if (!active || !connected || !ready) return;
+    const operation = pageVisible ? set(target, true) : remove(target);
+    operation.catch((error) =>
+      console.warn("Presence unavailable:", error.code),
+    );
+  };
+  const visibility = () => {
+    pageVisible = !document.hidden;
+    publish();
+  };
+  const hide = () => {
+    pageVisible = false;
+    publish();
+  };
+  document.addEventListener("visibilitychange", visibility);
+  window.addEventListener("pagehide", hide);
+  window.addEventListener("pageshow", visibility);
+  const unsubscribe = onValue(ref(db, ".info/connected"), async (snapshot) => {
+    connected = Boolean(snapshot.val());
+    ready = false;
+    if (!connected || !active) return;
     try {
-      await onDisconnect(target).set({
-        online: false,
-        lastSeen: serverTimestamp(),
-      });
-      if (active)
-        await set(target, { online: true, lastSeen: serverTimestamp() });
+      // Arm cleanup before announcing this tab. It is re-armed after reconnects.
+      await onDisconnect(target).remove();
+      ready = active && connected;
+      publish();
     } catch (error) {
       console.warn("Presence unavailable:", error.code);
     }
   });
-  return () => {
+  const stop = () => {
+    if (!active) return Promise.resolve();
     active = false;
-    stop();
-    onDisconnect(target)
-      .cancel()
-      .catch(() => {});
-    set(target, { online: false, lastSeen: serverTimestamp() }).catch(() => {});
+    unsubscribe();
+    document.removeEventListener("visibilitychange", visibility);
+    window.removeEventListener("pagehide", hide);
+    window.removeEventListener("pageshow", visibility);
+    presenceStops.delete(stop);
+    // Keep disconnect cleanup armed if this client loses its network during logout.
+    if (!connected) return Promise.resolve();
+    return remove(target).catch(() => {});
   };
+  presenceStops.add(stop);
+  return stop;
 }
+
 function messagePath(channel, userId, recipient) {
   if (!recipient) return "messages/" + channel;
   const [a, b] = [userId, recipient].sort();

@@ -139,8 +139,7 @@ it("uploads to a personal library and explicitly shares the file into a chosen c
     },
   });
   expect(await screen.findByText("notes.pdf")).toBeInTheDocument();
-  fireEvent.click(screen.getByLabelText("File options for notes.pdf"));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Share in chat" }));
+  fireEvent.click(screen.getByLabelText("Share notes.pdf"));
   fireEvent.change(screen.getByLabelText("Conversation"), {
     target: { value: "dm-hardik--mayur" },
   });
@@ -460,7 +459,7 @@ it("copies and moves file references without overwriting the original", async ()
   start();
   nav("Storage");
   fireEvent.click(screen.getByLabelText("File options for report.pdf"));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Duplicate file" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Make a copy" }));
   await waitFor(() =>
     expect(Object.keys(loadDemo().library.files)).toHaveLength(2),
   );
@@ -507,11 +506,69 @@ it("offers day, week, month and year calendar views", async () => {
   ).toBeGreaterThanOrEqual(28);
 });
 
-it("confirms ownership transfer and removes owner actions from the previous owner",async()=>{
- start();await team();fireEvent.click(screen.getByRole("button",{name:"Add registered user"}));fireEvent.change(screen.getByLabelText("Registered user"),{target:{value:"hardik"}});fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"Create"}));await waitFor(()=>expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
- fireEvent.click(screen.getByLabelText("Member options for Hardik Maheshwari"));fireEvent.click(screen.getByRole("menuitem",{name:"Transfer ownership"}));expect(screen.getByRole("dialog")).toHaveTextContent("You will remain a member");expect(Object.values(loadDemo().teams)[0].owner).toBe("mayur");
- fireEvent.click(within(screen.getByRole("dialog")).getByRole("button",{name:"Transfer ownership"}));await waitFor(()=>expect(Object.values(loadDemo().teams)[0].owner).toBe("hardik"));expect(Object.values(loadDemo().teams)[0].members.mayur).toBeDefined();expect(screen.queryByRole("button",{name:"Add registered user"})).not.toBeInTheDocument();expect(screen.queryByLabelText("Member options for Hardik Maheshwari")).not.toBeInTheDocument();
+it("confirms ownership transfer and removes owner actions from the previous owner", async () => {
+  start();
+  await team();
+  fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
+  fireEvent.change(screen.getByLabelText("Registered user"), {
+    target: { value: "hardik" },
+  });
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+  );
+  fireEvent.click(
+    screen.getByLabelText("Member options for Hardik Maheshwari"),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Transfer ownership" }));
+  expect(screen.getByRole("dialog")).toHaveTextContent(
+    "You will remain a member",
+  );
+  expect(Object.values(loadDemo().teams)[0].owner).toBe("mayur");
+  fireEvent.click(
+    within(screen.getByRole("dialog")).getByRole("button", {
+      name: "Transfer ownership",
+    }),
+  );
+  await waitFor(() =>
+    expect(Object.values(loadDemo().teams)[0].owner).toBe("hardik"),
+  );
+  expect(Object.values(loadDemo().teams)[0].members.mayur).toBeDefined();
+  expect(
+    screen.queryByRole("button", { name: "Add registered user" }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByLabelText("Member options for Hardik Maheshwari"),
+  ).not.toBeInTheDocument();
 });
-it("persists the chat layout preference and changes the message presentation",async()=>{
- start();nav("Settings");fireEvent.change(screen.getByLabelText("Chat layout"),{target:{value:"bubbles"}});await waitFor(()=>expect(loadDemo().preferences.settings.chatLayout).toBe("bubbles"));nav("Chat");fireEvent.change(screen.getByLabelText("Message"),{target:{value:"Layout check"}});fireEvent.click(screen.getByLabelText("Send message"));expect((await screen.findByText("Layout check")).closest("article")).toHaveClass("bubble-message","own");
+it("persists the chat layout preference and changes the message presentation", async () => {
+  start();
+  nav("Settings");
+  fireEvent.change(screen.getByLabelText("Message alignment"), {
+    target: { value: "bubbles" },
+  });
+  await waitFor(() =>
+    expect(loadDemo().preferences.settings.chatLayout).toBe("bubbles"),
+  );
+  fireEvent.change(screen.getByLabelText("Time format"), {
+    target: { value: "24" },
+  });
+  await waitFor(() =>
+    expect(loadDemo().preferences.settings.timeFormat).toBe("24"),
+  );
+  nav("Chat");
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "Layout check" },
+  });
+  fireEvent.click(screen.getByLabelText("Send message"));
+  expect(
+    (await screen.findByText("Layout check")).closest("article"),
+  ).toHaveClass("bubble-message", "own");
+  const messageTime = screen
+    .getByText("Layout check")
+    .closest("article")
+    .querySelector("time");
+  expect(messageTime).toHaveTextContent(/^\d{2}:\d{2}$/);
 });

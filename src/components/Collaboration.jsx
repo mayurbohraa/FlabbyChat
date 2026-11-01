@@ -80,6 +80,13 @@ export default function Collaboration({
     if (context.taskFilter) setTaskFilter(context.taskFilter);
   }, [context.taskFilter]);
   const upload = useRef();
+  const main = useRef();
+  useEffect(() => {
+    if (main.current) {
+      main.current.scrollTop = 0;
+      main.current.scrollLeft = 0;
+    }
+  }, [view]);
   const team = model.teams[context.teamId] || Object.values(model.teams)[0];
   const workspace =
     team?.workspaces?.[context.workspaceId] ||
@@ -347,7 +354,7 @@ export default function Collaboration({
   const activeTopic =
     dialog?.type === "discussion" ? team?.topics?.[dialog.item.id] : null;
   return (
-    <main className="module-main">
+    <main className="module-main" ref={main}>
       <header className="module-heading">
         <div>
           <h1>
@@ -508,6 +515,7 @@ export default function Collaboration({
       {model.loading && <p role="status">Loading your teams…</p>}
       {view === "Dashboard" && (
         <Dashboard
+          timeFormat={preferences.settings?.timeFormat}
           teams={model.teams}
           library={model.library}
           user={user}
@@ -581,7 +589,9 @@ export default function Collaboration({
                               (m.status === "on hold" ? "held" : "active")
                             }
                           >
-                            {m.status === "on hold" ? "Access paused" : "Active"}
+                            {m.status === "on hold"
+                              ? "Access paused"
+                              : "Active"}
                           </span>
                         </td>
                         <td>
@@ -780,6 +790,7 @@ export default function Collaboration({
       )}
       {view === "Calendar" && team && (
         <CalendarPanel
+          timeFormat={preferences.settings?.timeFormat}
           events={events}
           initialDate={context.calendarDate}
           onDateChange={setCalendarDate}
@@ -929,58 +940,83 @@ export default function Collaboration({
               </span>
             ))}
           </div>
-          {Object.values(library.files || {})
-            .filter((f) => (!folder || f.folderId === folder) && match(f.name))
-            .map((f) => (
-              <article
-                className="module-card list-record library-file"
-                key={f.id}
-              >
-                <FileText size={25} />
-                <div className="file-info">
-                  <strong>{f.name}</strong>
-                  <small>
-                    {(f.size / 1024).toFixed(0)} KB ·{" "}
-                    {new Date(f.createdAt).toLocaleDateString()}
-                  </small>
-                </div>
-                <div className="file-actions" aria-label={"Actions for " + f.name}>
-                  <button className="icon-button" aria-label={"Preview " + f.name} onClick={() => onPreview(f)}><Eye size={16} /></button>
-                  <button className="icon-button" aria-label={"Download " + f.name} onClick={() => fileDownload(f)}><Download size={16} /></button>
-                  <button className="icon-button" aria-label={"Share " + f.name} onClick={() => onShare(f)}><Share2 size={16} /></button>
-                  <ActionMenu
-                    label={"File options for " + f.name}
-                    actions={[
-                    {
-                      label: "Duplicate file",
-                      onSelect: () =>
-                        run(
-                          () => transferFile(f, "copy", f.folderId || ""),
-                          null,
-                          false,
-                        ),
-                    },
-                    {
-                      label: "Copy to…",
-                      onSelect: () =>
-                        setTransfer({ file: f, operation: "copy" }),
-                    },
-                    {
-                      label: "Move to…",
-                      onSelect: () =>
-                        setTransfer({ file: f, operation: "move" }),
-                    },
-                    {
-                      label: "Remove file",
-                      danger: true,
-                      onSelect: () =>
-                        askRemove("files", f, teamScope ? team.id : null),
-                    },
-                    ]}
-                  />
-                </div>
-              </article>
-            ))}
+          <div className="library-grid">
+            {Object.values(library.files || {})
+              .filter(
+                (f) => (!folder || f.folderId === folder) && match(f.name),
+              )
+              .map((f) => (
+                <article
+                  className="module-card list-record library-file"
+                  key={f.id}
+                >
+                  <FileText size={25} />
+                  <div className="file-info">
+                    <strong>{f.name}</strong>
+                    <small>
+                      {(f.size / 1024).toFixed(0)} KB ·{" "}
+                      {new Date(f.createdAt).toLocaleDateString()}
+                    </small>
+                  </div>
+                  <div
+                    className="file-actions"
+                    aria-label={"Actions for " + f.name}
+                  >
+                    <button
+                      className="icon-button"
+                      aria-label={"Preview " + f.name}
+                      onClick={() => onPreview(f)}
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label={"Download " + f.name}
+                      onClick={() => fileDownload(f)}
+                    >
+                      <Download size={16} />
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label={"Share " + f.name}
+                      onClick={() => onShare(f)}
+                    >
+                      <Share2 size={16} />
+                    </button>
+                    <ActionMenu
+                      label={"File options for " + f.name}
+                      actions={[
+                        {
+                          label: "Make a copy",
+                          onSelect: () =>
+                            run(
+                              () => transferFile(f, "copy", f.folderId || ""),
+                              null,
+                              false,
+                            ),
+                        },
+                        {
+                          label: "Copy to…",
+                          onSelect: () =>
+                            setTransfer({ file: f, operation: "copy" }),
+                        },
+                        {
+                          label: "Move to…",
+                          onSelect: () =>
+                            setTransfer({ file: f, operation: "move" }),
+                        },
+                        {
+                          label: "Remove file",
+                          danger: true,
+                          onSelect: () =>
+                            askRemove("files", f, teamScope ? team.id : null),
+                        },
+                      ]}
+                    />
+                  </div>
+                </article>
+              ))}
+          </div>
           {Object.keys(library.files || {}).length > 0 &&
             !Object.values(library.files || {}).some(
               (f) => (!folder || f.folderId === folder) && match(f.name),

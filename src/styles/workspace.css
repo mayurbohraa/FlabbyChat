@@ -1470,3 +1470,95 @@
     height: 40px;
   }
 }
+/* Compact message bubbles and file tiles share the same spacing scale. */
+.chat-app .bubble-message {
+  width: fit-content;
+  max-width: min(76%, 520px);
+  padding: 3px 0;
+  margin-bottom: 6px;
+}
+.chat-app .bubble-message .message-content {
+  width: fit-content;
+  padding: 7px 10px;
+}
+.chat-app .bubble-message .message-meta {
+  gap: 8px;
+}
+.chat-app .bubble-message .message-meta strong {
+  font-size: 11px;
+}
+.chat-app .bubble-message .message-content > p {
+  line-height: 1.45;
+}
+.chat-app .bubble-message > .avatar {
+  display: none;
+}
+.chat-app .chat-title p {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.chat-app .presence-dot.online {
+  background: #35b978;
+}
+.chat-app .presence-dot.offline {
+  background: #e16b73;
+}
+.chat-app .library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.chat-app .library-grid .library-file {
+  grid-template-columns: 32px minmax(0, 1fr);
+  padding: 14px;
+  gap: 10px;
+  margin: 0;
+  border: 0;
+  background: var(--neutral);
+  min-height: 0;
+}
+.chat-app .library-grid .file-info {
+  min-width: 0;
+}
+.chat-app .library-grid .file-info strong {
+  font-size: 13px;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.chat-app .library-grid .file-info small {
+  margin: 4px 0 0;
+  font-size: 11px;
+}
+.chat-app .library-grid .file-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  margin: 0;
+}
+.chat-app .app-content {
+  min-height: 0;
+}
+.chat-app .app-body > .module-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: auto;
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 700px) {
+  .chat-app .bubble-message {
+    max-width: 92%;
+  }
+  .chat-app .bubble-message .message-content {
+    padding: 7px 9px;
+  }
+  .chat-app .bubble-message .message-meta {
+    gap: 5px;
+  }
+  .chat-app .library-grid {
+    grid-template-columns: 1fr;
+  }
+}

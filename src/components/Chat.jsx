@@ -36,6 +36,7 @@ import {
 import CallDialog from "./CallDialog.jsx";
 import FilePreview from "./FilePreview.jsx";
 import ActionMenu from "./ActionMenu.jsx";
+import { formatTime } from "../utils/time.js";
 import { callSummary } from "../utils/calendar.js";
 import Collaboration from "./Collaboration.jsx";
 import NotificationDropdown from "./NotificationDropdown.jsx";
@@ -1011,10 +1012,17 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
             </button>
             <ActionMenu
               label="Account menu"
-              onOpen={()=>{setNotificationsOpen(false);setSearchOpen(false);}}
+              onOpen={() => {
+                setNotificationsOpen(false);
+                setSearchOpen(false);
+              }}
               className="header-profile"
               actions={[
-                { label: "Profile", Icon:UserRound, onSelect: () => navigate("Profile") },
+                {
+                  label: "Profile",
+                  Icon: UserRound,
+                  onSelect: () => navigate("Profile"),
+                },
                 {
                   label: "Logout",
                   Icon: LogOut,
@@ -1143,6 +1151,12 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                       {channel.name}
                     </h2>
                     <p>
+                      {selected.private && (
+                        <span
+                          className={`presence-dot ${data.presence?.[other.id]?.online ? "online" : "offline"}`}
+                          aria-hidden="true"
+                        />
+                      )}
                       {channel.description}
                       {selected.private
                         ? data.presence?.[other.id]?.online
@@ -1299,12 +1313,10 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                                     message.createdAt,
                                   ).toISOString()}
                                 >
-                                  {new Date(
+                                  {formatTime(
                                     message.createdAt,
-                                  ).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  })}
+                                    preferences.settings?.timeFormat,
+                                  )}
                                 </time>
                               </div>
                               {message.reply && (

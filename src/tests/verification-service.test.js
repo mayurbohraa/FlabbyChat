@@ -6,6 +6,9 @@ import {
   ensureProfile,
   resetPassword,
   changePassword,
+  trackPresence,
+  watchDirectory,
+  logout,
 } from "../services/cloud.js";
 import {
   sendEmailVerification,
@@ -15,8 +18,15 @@ import {
   sendPasswordResetEmail,
   reauthenticateWithCredential,
   updatePassword,
+  signOut,
 } from "firebase/auth";
-import { set, runTransaction } from "firebase/database";
+import {
+  set,
+  runTransaction,
+  onValue,
+  onDisconnect,
+  remove,
+} from "firebase/database";
 vi.hoisted(() => {
   vi.stubEnv("VITE_FIREBASE_API_KEY", "test-key");
   vi.stubEnv("VITE_FIREBASE_PROJECT_ID", "test-project");
@@ -109,4 +119,100 @@ it("does not change a password when the current password check fails", async () 
     "Wrong current password",
   );
   expect(updatePassword).not.toHaveBeenCalled();
+});
+it("marks only visible connected sessions online and removes presence before logout", async () => {
+  let connection;
+  const stopListener = vi.fn();
+  onValue.mockImplementation((_path, callback) => {
+    connection = callback;
+    return stopListener;
+  });
+  const disconnectRemove = vi.fn(async () => {});
+  onDisconnect.mockReturnValue({ remove: disconnectRemove });
+  set.mockResolvedValue();
+  remove.mockResolvedValue();
+  let hidden = false;
+  const descriptor = Object.getOwnPropertyDescriptor(document, "hidden");
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    get: () => hidden,
+  });
+  const stop = trackPresence("student");
+  try {
+    await connection({ val: () => true });
+    const sessionPath = set.mock.calls.at(-1)[0];
+    expect(sessionPath).toMatch(/^collegeChat\/presence\/student\/sessions\//);
+    expect(set).toHaveBeenLastCalledWith(sessionPath, true);
+    expect(disconnectRemove.mock.invocationCallOrder[0]).toBeLessThan(
+      set.mock.invocationCallOrder[0],
+    );
+    hidden = true;
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(remove).toHaveBeenLastCalledWith(sessionPath);
+    hidden = false;
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(set).toHaveBeenCalledTimes(2);
+    window.dispatchEvent(new Event("pagehide"));
+    expect(remove).toHaveBeenCalledTimes(2);
+    await logout();
+    expect(remove.mock.invocationCallOrder.at(-1)).toBeLessThan(
+      signOut.mock.invocationCallOrder[0],
+    );
+    expect(stopListener).toHaveBeenCalledOnce();
+    set.mockClear();
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(set).not.toHaveBeenCalled();
+  } finally {
+    await stop();
+    if (descriptor) Object.defineProperty(document, "hidden", descriptor);
+    else delete document.hidden;
+  }
+});
+it("ignores stale legacy online flags and combines multiple visible sessions", () => {
+  const listeners = {};
+  onValue.mockImplementation((path, callback) => {
+    listeners[path] = callback;
+    return () => {};
+  });
+  const callback = vi.fn();
+  const stop = watchDirectory(callback);
+  listeners["collegeChat/presence"]({
+    val: () => ({
+      legacy: { online: true, lastSeen: 1 },
+      student: { sessions: { first: true, second: true } },
+      offline: { sessions: {} },
+    }),
+  });
+  expect(callback.mock.calls.at(-1)[0].presence).toEqual({
+    legacy: { online: false },
+    student: { online: true },
+    offline: { online: false },
+  });
+  listeners["collegeChat/presence"]({
+    val: () => ({ student: { sessions: { second: true } } }),
+  });
+  expect(callback.mock.calls.at(-1)[0].presence.student.online).toBe(true);
+  listeners["collegeChat/presence"]({ val: () => null });
+  expect(callback.mock.calls.at(-1)[0].presence).toEqual({});
+  stop();
+});
+it("does not publish a stopped session after disconnect cleanup finishes", async () => {
+  let connection, arm;
+  onValue.mockImplementation((_path, callback) => {
+    connection = callback;
+    return () => {};
+  });
+  onDisconnect.mockReturnValue({
+    remove: () =>
+      new Promise((resolve) => {
+        arm = resolve;
+      }),
+  });
+  remove.mockResolvedValue();
+  const stop = trackPresence("student");
+  const pending = connection({ val: () => true });
+  await stop();
+  arm();
+  await pending;
+  expect(set).not.toHaveBeenCalled();
 });

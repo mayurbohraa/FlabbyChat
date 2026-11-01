@@ -1,3 +1,4 @@
+import { formatTime } from "../utils/time.js";
 import React, { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { dateKey, fromKey, periodDates, shiftDate } from "../utils/calendar.js";
@@ -49,6 +50,7 @@ export default function CalendarPanel({
   initialDate,
   onDateChange,
   canCreate = true,
+  timeFormat,
 }) {
   const [mode, setMode] = useState("Month"),
     [date, setDate] = useState(initialDate || dateKey(new Date())),
@@ -151,7 +153,7 @@ export default function CalendarPanel({
           {visible.length ? (
             visible.map((e) => (
               <button key={e.id} onClick={() => setSelected(e)}>
-                <time>{e.time}</time>
+                <time>{formatTime(e.time, timeFormat)}</time>
                 <span>
                   <strong>{e.title}</strong>
                   <small>{e.description || "Project event"}</small>
@@ -203,14 +205,16 @@ export default function CalendarPanel({
                 .map((e) => (
                   <button
                     className="calendar-event"
-                    aria-label={e.title + " at " + e.time}
+                    aria-label={
+                      e.title + " at " + formatTime(e.time, timeFormat)
+                    }
                     key={e.id}
-                    title={e.time + " " + e.title}
+                    title={formatTime(e.time, timeFormat) + " " + e.title}
                     onClick={() => setSelected(e)}
                   >
                     <i />
                     <span>
-                      {e.time} {e.title}
+                      {formatTime(e.time, timeFormat)} {e.title}
                     </span>
                   </button>
                 ))}
@@ -256,7 +260,7 @@ export default function CalendarPanel({
                   </button>
                 </td>
                 <td>{e.date}</td>
-                <td>{e.time}</td>
+                <td>{formatTime(e.time, timeFormat)}</td>
                 <td>{e.description || "—"}</td>
                 <td>
                   <ActionMenu
@@ -287,7 +291,7 @@ export default function CalendarPanel({
       {selected && (
         <Dialog title={selected.title} onClose={() => setSelected(null)}>
           <p className="event-summary-time">
-            {selected.date} · {selected.time}
+            {selected.date} · {formatTime(selected.time, timeFormat)}
           </p>
           <p className="event-summary-description">
             {selected.description || "No additional details."}

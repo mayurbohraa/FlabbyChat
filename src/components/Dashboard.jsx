@@ -1,7 +1,9 @@
+import { formatTime } from "../utils/time.js";
 import React, { useState } from "react";
 import { MiniCalendar } from "./CalendarPanel.jsx";
 import { dateKey } from "../utils/calendar.js";
 export default function Dashboard({
+  timeFormat,
   teams,
   library,
   user,
@@ -61,7 +63,11 @@ export default function Dashboard({
             <div className="section-heading">
               <h2>Project progress</h2>
               <span>
-                {tasks.length} tasks across {list.length} teams
+                {tasks.length} {tasks.length === 1 ? "task" : "tasks"} ·{" "}
+                {tasks.length
+                  ? Math.round((counts[2].count / tasks.length) * 100)
+                  : 0}
+                % complete
               </span>
             </div>
             {tasks.length ? (
@@ -163,7 +169,7 @@ export default function Dashboard({
                     <strong>{e.title}</strong>
                     <small>{e.description || "Project event"}</small>
                   </div>
-                  <time>{e.time}</time>
+                  <time>{formatTime(e.time, timeFormat)}</time>
                 </div>
               ))
             ) : (

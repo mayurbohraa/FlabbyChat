@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import { Palette, Bell } from "lucide-react";
-export default function SettingsPanel({
-  preferences,
-  onSetting,
-  run,
-}) {
+export default function SettingsPanel({ preferences, onSetting, run }) {
   const [section, setSection] = useState("Appearance");
   const sections = [
     ["Appearance", Palette],
@@ -56,25 +52,45 @@ export default function SettingsPanel({
         </div>
         <div className="setting-row">
           <div className="setting-copy">
-          <label htmlFor="chat-layout">Message layout</label>
+            <label htmlFor="chat-layout">Message alignment</label>
             <p>
-              Choose a single reading flow or a compact two-sided conversation.
+              Keep all messages together, or place your messages on the right.
             </p>
           </div>
           <select
             id="chat-layout"
-            aria-label="Message layout"
+            aria-label="Message alignment"
             value={preferences.settings?.chatLayout || "list"}
             onChange={(e) =>
               run(
                 () => onSetting("chatLayout", e.target.value),
-                "Chat layout updated.",
+                "Message alignment updated.",
                 false,
               )
             }
           >
-            <option value="list">Standard conversation</option>
-            <option value="bubbles">Split conversation</option>
+            <option value="list">All messages on the left</option>
+            <option value="bubbles">Your messages on the right</option>
+          </select>
+        </div>
+        <div className="setting-row">
+          <div className="setting-copy">
+            <label htmlFor="time-format">Time format</label>
+            <p>Use this format for messages and scheduled events.</p>
+          </div>
+          <select
+            id="time-format"
+            value={preferences.settings?.timeFormat || "12"}
+            onChange={(e) =>
+              run(
+                () => onSetting("timeFormat", e.target.value),
+                "Time format updated.",
+                false,
+              )
+            }
+          >
+            <option value="12">12 hour · 2:30 PM</option>
+            <option value="24">24 hour · 14:30</option>
           </select>
         </div>
         <div className="theme-sample" aria-hidden="true">
