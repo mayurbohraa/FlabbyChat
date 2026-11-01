@@ -2,7 +2,9 @@ import React from "react";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { afterEach, it, expect, vi } from "vitest";
 import ActionMenu from "../components/ActionMenu.jsx";
+
 afterEach(cleanup);
+
 it("supports keyboard navigation, dismissal and selection", () => {
   const select = vi.fn();
   render(

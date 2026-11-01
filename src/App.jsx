@@ -5,6 +5,7 @@ import Chat from "./components/Chat.jsx";
 import * as cloud from "./services/cloud.js";
 import { demoUser, friendlyError } from "./utils/chat-data.js";
 import { applyTheme, savedTheme } from "./utils/theme.js";
+
 export default function App() {
   useEffect(() => {
     applyTheme();
@@ -15,10 +16,12 @@ export default function App() {
     media?.addEventListener("change", change);
     return () => media?.removeEventListener("change", change);
   }, []);
+
   const [account, setAccount] = useState(null);
   const [demo, setDemo] = useState(false);
   const [checking, setChecking] = useState(cloud.configured);
   const [error, setError] = useState("");
+
   function accountChanged(user) {
     // Copy the verification flag: Firebase mutates its User instance on reload.
     setAccount(user ? { user, emailVerified: user.emailVerified } : null);
@@ -27,7 +30,9 @@ export default function App() {
     if (user?.emailVerified)
       cloud.ensureProfile(user).catch((err) => setError(friendlyError(err)));
   }
+
   useEffect(() => cloud.watchAuth(accountChanged), []);
+
   if (checking) return <div className="loading">Loading FlabbyChat…</div>;
   if (!demo && !account)
     return (

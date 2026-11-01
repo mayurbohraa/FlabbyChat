@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import logo from "../assets/images/FlabbyChatLogo.png";
 import * as cloud from "../services/cloud.js";
 import { validateSignup, friendlyError } from "../utils/chat-data.js";
+
 export default function Auth({ onDemo }) {
   const [page, setPage] = useState("login");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [email, setEmail] = useState("");
+
   async function submit(e) {
     e.preventDefault();
     setError("");
@@ -47,11 +49,13 @@ export default function Auth({ onDemo }) {
       setBusy(false);
     }
   }
+
   function switchPage(next) {
     setPage(next);
     setError("");
     setNotice("");
   }
+
   return (
     <main className="auth-page">
       <section className="auth-card">

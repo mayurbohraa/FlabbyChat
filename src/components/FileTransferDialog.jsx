@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Folder } from "lucide-react";
 import { Dialog } from "./ui.jsx";
 import { friendlyError } from "../utils/chat-data.js";
+
 export default function FileTransferDialog({
   file,
   operation,

@@ -8,7 +8,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, it, expect, vi } from "vitest";
 import Dashboard from "../components/Dashboard.jsx";
+
 afterEach(cleanup);
+
 const props = () => ({
   user: { id: "me", name: "Student" },
   users: {},
@@ -17,6 +19,7 @@ const props = () => ({
   onTeam: vi.fn(),
   onCalendar: vi.fn(),
 });
+
 it("shows real status proportions and completed tasks by team", () => {
   const callbacks = props();
   const teams = {
@@ -52,6 +55,7 @@ it("shows real status proportions and completed tasks by team", () => {
   fireEvent.click(screen.getByRole("button", { name: "Open Alpha team" }));
   expect(callbacks.onTeam).toHaveBeenCalledWith("a");
 });
+
 it("shows an honest empty state without inventing chart data", () => {
   render(<Dashboard {...props()} teams={{}} />);
   expect(

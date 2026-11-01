@@ -26,12 +26,15 @@ import {
   serverTimestamp,
 } from "firebase/database";
 import { general, uid } from "../utils/chat-data.js";
+
 const env = import.meta.env;
+
 export const configured = Boolean(
   env.VITE_FIREBASE_API_KEY &&
   env.VITE_FIREBASE_DATABASE_URL &&
   env.VITE_FIREBASE_PROJECT_ID,
 );
+
 const app = configured
   ? initializeApp({
       apiKey: env.VITE_FIREBASE_API_KEY,
@@ -41,19 +44,27 @@ const app = configured
       appId: env.VITE_FIREBASE_APP_ID,
     })
   : null;
+
 export const auth = app ? getAuth(app) : null;
+
 export const db = app ? getDatabase(app) : null;
+
 const path = (value) => ref(db, "collegeChat/" + value);
+
 export const watchAuth = (callback) =>
   auth ? onAuthStateChanged(auth, callback) : () => {};
+
 export const login = (email, password) =>
   signInWithEmailAndPassword(auth, email, password);
+
 export async function signup(name, email, password) {
   const result = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(result.user, { displayName: name });
   return result.user;
 }
+
 const presenceStops = new Set();
+
 export async function logout() {
   const cleanup = Promise.all([...presenceStops].map((stop) => stop()));
   let timeout;
@@ -69,9 +80,12 @@ export async function logout() {
   }
   return signOut(auth);
 }
+
 export const resetPassword = (email) => sendPasswordResetEmail(auth, email);
+
 // Share one pending request across remounts, and limit resend to once a minute.
 const verificationRequests = new Map();
+
 export function sendVerification(user) {
   const previous = verificationRequests.get(user.uid);
   if (previous && Date.now() - previous.sentAt < 60000) return previous.promise;
@@ -85,11 +99,13 @@ export function sendVerification(user) {
   verificationRequests.set(user.uid, request);
   return request.promise;
 }
+
 export async function refreshVerification(user) {
   await reload(user);
   if (user.emailVerified) await getIdToken(user, true);
   return user;
 }
+
 // Seed a missing profile without replacing edits saved during earlier sessions.
 export async function ensureProfile(user) {
   if (!user.emailVerified) return;
@@ -102,6 +118,7 @@ export async function ensureProfile(user) {
       },
   );
 }
+
 // These subscriptions arrive independently; emit their latest combined state.
 export function watchDirectory(callback, onError) {
   let channels = { general },
@@ -147,6 +164,7 @@ export function watchDirectory(callback, onError) {
     stopPresence();
   };
 }
+
 export function trackPresence(userId) {
   // Each tab owns its own session so closing a background tab cannot hide another.
   const target = path("presence/" + userId + "/sessions/" + uid());
@@ -206,6 +224,7 @@ function messagePath(channel, userId, recipient) {
   const [a, b] = [userId, recipient].sort();
   return "direct/" + a + "/" + b;
 }
+
 // Merge private call history into the same feed as conversation messages.
 export function watchMessages(channel, userId, recipient, callback, onError) {
   let messages = {},
@@ -265,6 +284,7 @@ export function watchMessages(channel, userId, recipient, callback, onError) {
     stopCalls();
   };
 }
+
 export const sendMessage = (message) =>
   set(
     path(
@@ -274,6 +294,7 @@ export const sendMessage = (message) =>
     ),
     message,
   );
+
 export const deleteMessage = (message) =>
   remove(
     path(
@@ -282,21 +303,26 @@ export const deleteMessage = (message) =>
         message.id,
     ),
   );
+
 export const addChannel = (channel) =>
   set(path("channels/" + channel.id), channel);
+
 export const watchPreferences = (userId, callback, onError) =>
   onValue(
     path("preferences/" + userId),
     (snap) => callback(snap.val() || { favorites: {}, lastRead: {} }),
     onError,
   );
+
 export const setFavorite = (userId, channel, favorite) =>
   set(
     path("preferences/" + userId + "/favorites/" + channel),
     favorite ? true : null,
   );
+
 export const markRead = (userId, channel, timestamp) =>
   set(path("preferences/" + userId + "/lastRead/" + channel), timestamp);
+
 // Listen for message timestamps to show unread counts in the sidebar.
 export function watchUnread(channels, users, userId, callback, onError) {
   const results = {};
@@ -321,8 +347,10 @@ export function watchUnread(channels, users, userId, callback, onError) {
     .forEach((id) => subscribe("dm-" + [id, userId].sort().join("--"), id));
   return () => stops.forEach((stop) => stop());
 }
+
 // Call signaling is in calls.js. Media travels through WebRTC, not the database.
 export { ref, onValue, set, update, remove };
+
 // A timed-out SDK write may still sync later; only its UI wait is bounded here.
 async function confirmProfileWrite(write) {
   const user = auth?.currentUser;
@@ -353,6 +381,7 @@ async function confirmProfileWrite(write) {
     clearTimeout(timeout);
   }
 }
+
 export function saveProfile(profile) {
   return confirmProfileWrite((user) =>
     update(path("users/" + user.uid), {
@@ -363,6 +392,7 @@ export function saveProfile(profile) {
     }),
   );
 }
+
 // Merge the photo transactionally so another session's name/bio edits survive.
 export function saveProfilePhoto(photoURL) {
   return confirmProfileWrite(async (user) => {
@@ -380,6 +410,7 @@ export function saveProfilePhoto(photoURL) {
       throw new Error("Your photo was not saved. Please try again.");
   });
 }
+
 export async function changePassword(current, password) {
   const user = auth.currentUser;
   await reauthenticateWithCredential(
@@ -389,18 +420,23 @@ export async function changePassword(current, password) {
   await updatePassword(user, password);
   await getIdToken(user, true);
 }
+
 export const setSetting = (userId, key, value) =>
   set(path("preferences/" + userId + "/settings/" + key), value);
+
 export const readNotification = (userId, id) =>
   set(path("preferences/" + userId + "/notificationRead/" + id), true);
+
 export const watchPersonal = (userId, callback, error) =>
   onValue(
     path("libraries/" + userId),
     (snap) => callback(snap.val() || { files: {}, folders: {} }),
     error,
   );
+
 export const writePersonal = (userId, collection, id, value) =>
   set(path("libraries/" + userId + "/" + collection + "/" + id), value);
+
 // Submit both paths together so a rejected move leaves the source intact.
 export function transferLibraryFile(
   userId,
@@ -419,6 +455,7 @@ export function transferLibraryFile(
     [destination]: file,
   });
 }
+
 // Membership changes add/remove team listeners and discard inaccessible records.
 export function watchTeams(userId, callback, error) {
   let teams = {},
@@ -459,12 +496,15 @@ export function watchTeams(userId, callback, error) {
     Object.values(stops).forEach((fn) => fn());
   };
 }
+
 export async function createTeam(team) {
   await set(path("teams/" + team.id), team);
   await set(path("teamIndex/" + team.owner + "/" + team.id), true);
 }
+
 export const writeTeam = (team, collection, id, value) =>
   set(path("teams/" + team + "/" + collection + "/" + id), value);
+
 export async function addTeamMember(team, member) {
   await set(path("teams/" + team + "/members/" + member.id), {
     id: member.id,
@@ -474,12 +514,14 @@ export async function addTeamMember(team, member) {
   });
   await set(path("teamIndex/" + member.id + "/" + team), true);
 }
+
 export function transferTeamOwnership(team, memberId) {
   return update(path(""), {
     ["teams/" + team + "/owner"]: memberId,
     ["teamIndex/" + memberId + "/" + team]: true,
   });
 }
+
 export async function setTeamMemberStatus(team, userId, status) {
   if (!["active", "on hold"].includes(status))
     throw new Error("Choose a valid member status.");
@@ -488,6 +530,7 @@ export async function setTeamMemberStatus(team, userId, status) {
     ["teamIndex/" + userId + "/" + team]: status === "active" ? true : null,
   });
 }
+
 export async function removeTeamMember(team, userId) {
   await remove(path("teams/" + team + "/members/" + userId));
   await remove(path("teamIndex/" + userId + "/" + team));

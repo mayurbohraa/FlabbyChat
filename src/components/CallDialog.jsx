@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import ringtone from "../assets/audio/ring.mp3";
 import Avatar from "./Avatar.jsx";
+
 export default function CallDialog({
   session,
   onClose,
@@ -26,6 +27,7 @@ export default function CallDialog({
   const dialog = useRef(),
     local = useRef(),
     remote = useRef();
+
   useEffect(() => {
     const el = dialog.current;
     el.showModal();
@@ -37,6 +39,7 @@ export default function CallDialog({
       el.close();
     };
   }, [session]);
+
   useEffect(() => {
     if (local.current) local.current.srcObject = state.local || null;
     if (remote.current) {
@@ -48,6 +51,7 @@ export default function CallDialog({
           .catch(() => setPlayError(true));
     }
   }, [state.local, state.remote]);
+
   const ended =
     state.ended ||
     [
@@ -58,6 +62,7 @@ export default function CallDialog({
       "Declined",
       "Busy",
     ].includes(state.phase);
+
   useEffect(() => {
     // The effect cleanup stops the loop as soon as ringing ends or sound is disabled.
     const shouldRing =
@@ -77,6 +82,7 @@ export default function CallDialog({
       setRingBlocked(false);
     };
   }, [soundEnabled, ended, state.phase, session]);
+
   async function close() {
     await session.end(
       session.incoming && state.phase === "Incoming call"
@@ -85,6 +91,7 @@ export default function CallDialog({
     );
     onClose();
   }
+
   return (
     <dialog
       className="call-dialog"

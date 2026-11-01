@@ -25,10 +25,12 @@ import TaskBoard from "./TaskBoard.jsx";
 import CalendarPanel from "./CalendarPanel.jsx";
 import Dashboard from "./Dashboard.jsx";
 import { formatTime } from "../utils/time.js";
+
 const localDate = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
 export default function Collaboration({
   view,
   model,
@@ -55,44 +57,54 @@ export default function Collaboration({
     [scope, setScope] = useState("personal"),
     [folder, setFolder] = useState(""),
     [taskFilter, setTaskFilter] = useState("All");
+
   useEffect(() => setSearch(""), [view]);
+
   useEffect(() => {
     if (context.calendarDate) setCalendarDate(context.calendarDate);
   }, [context.calendarDate]);
+
   useEffect(() => {
     if (context.searchToken) {
       setSearch(context.search || "");
       setFolder("");
     }
   }, [context.searchToken]);
+
   useEffect(() => {
     if (context.libraryScope) {
       setScope(context.libraryScope);
       setFolder("");
     }
   }, [context.libraryScope]);
+
   useEffect(() => {
     if (context.taskFilter) setTaskFilter(context.taskFilter);
   }, [context.taskFilter]);
+
   const upload = useRef();
   const main = useRef();
+
   useEffect(() => {
     if (main.current) {
       main.current.scrollTop = 0;
       main.current.scrollLeft = 0;
     }
   }, [view]);
+
   const team = model.teams[context.teamId] || Object.values(model.teams)[0];
   const workspace =
     team?.workspaces?.[context.workspaceId] ||
     Object.values(team?.workspaces || {})[0];
   const workspaceId = workspace?.id || "";
+
   useEffect(() => {
     if (!team && scope === "team") {
       setScope("personal");
       setFolder("");
     }
   }, [team?.id, scope]);
+
   const owner = team?.owner === user.id;
   const teamScope = scope === "team" && team;
   const library = teamScope ? team : model.library;
@@ -107,10 +119,12 @@ export default function Collaboration({
     String(value || "")
       .toLowerCase()
       .includes(search.toLowerCase());
+
   function open(type, item) {
     setError("");
     setDialog({ type, item });
   }
+
   async function run(action, success, close = true) {
     setBusy(true);
     setError("");
@@ -128,6 +142,7 @@ export default function Collaboration({
       setBusy(false);
     }
   }
+
   async function save(e) {
     e.preventDefault();
     const fields = Object.fromEntries(new FormData(e.currentTarget));
@@ -244,6 +259,7 @@ export default function Collaboration({
       type !== "reply",
     );
   }
+
   async function uploadFile(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -267,6 +283,7 @@ export default function Collaboration({
       false,
     );
   }
+
   async function transferFile(
     file,
     operation,
@@ -329,9 +346,11 @@ export default function Collaboration({
     );
     onNotice(operation === "move" ? "File moved." : "File copied.");
   }
+
   async function fileDownload(file) {
     await run(() => downloadAttachment(file), "Download started.", false);
   }
+
   async function remove() {
     const { collection, id, teamId, workspaceDelete, member } = dialog.item;
     await run(async () => {
@@ -358,6 +377,7 @@ export default function Collaboration({
       } else await model.write(teamId, collection, id, null);
     }, "Removed successfully.");
   }
+
   function askRemove(collection, item, teamId = team?.id) {
     open("delete", {
       collection,
@@ -367,6 +387,7 @@ export default function Collaboration({
       member: collection === "members",
     });
   }
+
   const displayTimestamp = (value) =>
     new Date(value).toLocaleDateString(undefined, {
       month: "short",

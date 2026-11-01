@@ -3,6 +3,7 @@ import Avatar from "./Avatar.jsx";
 import React, { useState } from "react";
 import { MiniCalendar } from "./CalendarPanel.jsx";
 import { dateKey } from "../utils/calendar.js";
+
 export default function Dashboard({
   timeFormat,
   teams,

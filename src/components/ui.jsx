@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState, useId } from "react";
 import { X } from "lucide-react";
+
 export function Dialog({ title, onClose, children, className = "" }) {
   const ref = useRef();
   const titleId = useId();
+
   useEffect(() => {
     const el = ref.current,
       previous = document.activeElement;
@@ -12,6 +14,7 @@ export function Dialog({ title, onClose, children, className = "" }) {
       previous?.focus();
     };
   }, []);
+
   return (
     <dialog
       ref={ref}
@@ -37,6 +40,7 @@ export function Dialog({ title, onClose, children, className = "" }) {
     </dialog>
   );
 }
+
 export function Empty({ title, children }) {
   return (
     <div className="module-empty">
@@ -50,6 +54,7 @@ export function useMedia(query) {
   const [matches, setMatches] = useState(() =>
     Boolean(window.matchMedia?.(query).matches),
   );
+
   useEffect(() => {
     const media = window.matchMedia?.(query);
     const update = () => setMatches(Boolean(media?.matches));
@@ -57,5 +62,6 @@ export function useMedia(query) {
     media?.addEventListener("change", update);
     return () => media?.removeEventListener("change", update);
   }, [query]);
+
   return matches;
 }

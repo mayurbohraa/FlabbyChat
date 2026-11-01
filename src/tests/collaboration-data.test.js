@@ -1,5 +1,6 @@
 import { it, expect } from "vitest";
 import { taskCsv, notificationItems } from "../utils/collaboration-data.js";
+
 it("escapes CSV formulas and quoted text", () => {
   const csv = taskCsv([
     { title: '=HYPERLINK("bad")', status: "To do", due: "2026-11-01" },
@@ -7,6 +8,7 @@ it("escapes CSV formulas and quoted text", () => {
   expect(csv).toContain("'=HYPERLINK");
   expect(csv).toContain('""bad""');
 });
+
 it("notifies only the receiver about call outcomes and the assignee about tasks", () => {
   const messages = {
     dm: {
@@ -25,6 +27,7 @@ it("notifies only the receiver about call outcomes and the assignee about tasks"
     detail: "Alice · Missed",
   });
 });
+
 it("uses the selected clock in upcoming event notifications", () => {
   const teams = {
     team: {

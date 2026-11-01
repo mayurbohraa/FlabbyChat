@@ -4,11 +4,13 @@ import {
   validateFile,
   safeAttachmentUrl,
 } from "../services/storage.js";
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   vi.resetModules();
 });
+
 it("prepares a local PDF without uploading it", async () => {
   const fetcher = vi.fn();
   vi.stubGlobal("fetch", fetcher);
@@ -20,6 +22,7 @@ it("prepares a local PDF without uploading it", async () => {
   expect(file.url).toMatch(/^data:application\/pdf;base64,/);
   expect(fetcher).not.toHaveBeenCalled();
 });
+
 it("enforces accepted types and size limits", () => {
   expect(() =>
     validateFile(
@@ -34,6 +37,7 @@ it("enforces accepted types and size limits", () => {
     ),
   ).toThrow("250 KB");
 });
+
 it("rejects executable and unexpected remote URLs", () => {
   expect(safeAttachmentUrl("javascript:alert(1)")).toBeNull();
   expect(safeAttachmentUrl("https://untrusted.example/file.pdf")).toBeNull();
@@ -41,6 +45,7 @@ it("rejects executable and unexpected remote URLs", () => {
     safeAttachmentUrl("https://res.cloudinary.com/demo/image/upload/test.pdf"),
   ).toBeTruthy();
 });
+
 it("sends the configured preset to Cloudinary and retains file metadata", async () => {
   vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "cze8a37x");
   vi.stubEnv("VITE_CLOUDINARY_UPLOAD_PRESET", "FlabbyChat_uploads");
@@ -66,6 +71,7 @@ it("sends the configured preset to Cloudinary and retains file metadata", async 
     url: "https://res.cloudinary.com/cze8a37x/image/upload/test.pdf",
   });
 });
+
 it("blocks a file above 5 MB before sending it to Cloudinary", async () => {
   vi.stubEnv("VITE_CLOUDINARY_CLOUD_NAME", "cze8a37x");
   vi.stubEnv("VITE_CLOUDINARY_UPLOAD_PRESET", "FlabbyChat_uploads");

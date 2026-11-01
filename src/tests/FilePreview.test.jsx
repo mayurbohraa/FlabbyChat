@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import FilePreview from "../components/FilePreview.jsx";
+
 vi.mock("../components/PdfViewer.jsx", () => ({
   default: ({ name }) => (
     <div role="region" aria-label={"Preview of " + name}>
@@ -16,13 +17,16 @@ vi.mock("../components/PdfViewer.jsx", () => ({
     </div>
   ),
 }));
+
 const file = {
   name: "report.pdf",
   kind: "pdf",
   size: 200,
   url: "https://res.cloudinary.com/demo/raw/upload/report.pdf",
 };
+
 let revoke;
+
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.open = true;
@@ -40,10 +44,12 @@ beforeEach(() => {
     },
   );
 });
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+
 it("loads a PDF inside the app without an external link", async () => {
   vi.stubGlobal(
     "fetch",
@@ -61,6 +67,7 @@ it("loads a PDF inside the app without an external link", async () => {
   unmount();
   expect(revoke).not.toHaveBeenCalled();
 });
+
 it("shows a failed PDF load inline and lets the user retry", async () => {
   const request = vi
     .fn()
@@ -79,6 +86,7 @@ it("shows a failed PDF load inline and lets the user retry", async () => {
     await screen.findByRole("region", { name: "Preview of report.pdf" }),
   ).toBeInTheDocument();
 });
+
 it("rejects non-PDF content instead of embedding it", async () => {
   vi.stubGlobal(
     "fetch",
@@ -93,6 +101,7 @@ it("rejects non-PDF content instead of embedding it", async () => {
     screen.queryByRole("region", { name: "Preview of report.pdf" }),
   ).not.toBeInTheDocument();
 });
+
 it("does not request unsafe file links", async () => {
   const request = vi.fn();
   vi.stubGlobal("fetch", request);

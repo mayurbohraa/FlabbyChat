@@ -4,7 +4,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { dateKey, fromKey, periodDates, shiftDate } from "../utils/calendar.js";
 import { Dialog } from "./ui.jsx";
 import ActionMenu from "./ActionMenu.jsx";
+
 const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
 export function MiniCalendar({
   value = dateKey(new Date()),
   events = [],
@@ -41,6 +43,7 @@ export function MiniCalendar({
     </div>
   );
 }
+
 export default function CalendarPanel({
   events,
   onCreate,
@@ -55,12 +58,15 @@ export default function CalendarPanel({
   const [mode, setMode] = useState("Month"),
     [date, setDate] = useState(initialDate || dateKey(new Date())),
     [selected, setSelected] = useState(null);
+
   useEffect(() => {
     if (initialDate) setDate(initialDate);
   }, [initialDate]);
+
   useEffect(() => {
     onDateChange?.(date);
   }, [date, onDateChange]);
+
   const dates = periodDates(date, mode),
     year = date.slice(0, 4),
     visible = events

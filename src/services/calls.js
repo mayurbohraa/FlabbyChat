@@ -10,14 +10,19 @@ import {
   serverTimestamp,
 } from "firebase/database";
 import { db } from "./cloud.js";
+
 const callRef = (id) => ref(db, "collegeChat/calls/" + id);
+
 const inboxRef = (id) => ref(db, "collegeChat/incoming/" + id);
+
 export const watchIncoming = (userId, callback, onError) =>
   onValue(inboxRef(userId), (snapshot) => callback(snapshot.val()), onError);
+
 const historyRef = (a, b, id) => {
   const [first, second] = [a, b].sort();
   return ref(db, `collegeChat/callHistory/${first}/${second}/${id}`);
 };
+
 // Both endpoints may finish together; transactions preserve the first outcome.
 async function finishRecord(id, userId, reason) {
   const result = await runTransaction(callRef(id), (current) => {
@@ -67,6 +72,7 @@ async function finishRecord(id, userId, reason) {
     },
   );
 }
+
 export async function dismissIncoming(userId, incoming) {
   await finishRecord(
     incoming.id,
@@ -75,6 +81,7 @@ export async function dismissIncoming(userId, incoming) {
   );
   await remove(inboxRef(userId));
 }
+
 export function createCall({ user, other, video = false, incoming = null }) {
   const id = incoming?.id || crypto.randomUUID();
   let peer = null,
@@ -102,6 +109,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
     listeners.forEach((fn) => fn(view));
   };
   const isCaller = !incoming;
+
   // ICE candidates can arrive before the remote description is ready.
   async function flushCandidates() {
     if (!peer?.remoteDescription) return;
@@ -109,6 +117,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
     pendingCandidates = [];
     for (const candidate of candidates) await peer.addIceCandidate(candidate);
   }
+
   // Release listeners, peer state and device tracks on every exit path.
   function stopMedia() {
     clearTimeout(timer);
@@ -121,6 +130,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
     local?.getTracks().forEach((track) => track.stop());
     remote?.getTracks().forEach((track) => track.stop());
   }
+
   async function end(reason = "Call ended") {
     if (closed) return;
     closed = true;
@@ -142,6 +152,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
       ]);
     }
   }
+
   async function media() {
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection)
       throw new Error(
@@ -211,6 +222,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
     emit({ local, remote });
     return true;
   }
+
   async function fail(error) {
     emit({
       error:
@@ -220,6 +232,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
     });
     await end("Failed");
   }
+
   function listen() {
     stops.push(
       onValue(
@@ -271,6 +284,7 @@ export function createCall({ user, other, video = false, incoming = null }) {
       ),
     );
   }
+
   return {
     id,
     other,

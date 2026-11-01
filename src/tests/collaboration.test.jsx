@@ -14,15 +14,18 @@ import Profile from "../components/Profile.jsx";
 import NotificationDropdown from "../components/NotificationDropdown.jsx";
 import * as cloud from "../services/cloud.js";
 import { demoUser, loadDemo, saveDemo } from "../utils/chat-data.js";
+
 vi.mock("../services/cloud.js", () => ({
   configured: false,
   saveProfile: vi.fn(),
   changePassword: vi.fn(),
 }));
+
 vi.mock("../services/calls.js", () => ({
   watchIncoming: () => () => {},
   createCall: vi.fn(),
 }));
+
 beforeEach(() => {
   localStorage.clear();
   HTMLDialogElement.prototype.showModal = function () {
@@ -32,10 +35,13 @@ beforeEach(() => {
     this.open = false;
   };
 });
+
 afterEach(cleanup);
+
 function start() {
   render(<Chat user={demoUser} demo onLogout={() => {}} />);
 }
+
 function nav(name) {
   fireEvent.click(
     within(
@@ -51,6 +57,7 @@ function nav(name) {
     }),
   );
 }
+
 async function team() {
   nav("Teams");
   fireEvent.click(screen.getByRole("button", { name: "Create team" }));
@@ -64,6 +71,7 @@ async function team() {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
 }
+
 it("creates a team, assigns a task, and persists status changes", async () => {
   start();
   await team();
@@ -86,6 +94,7 @@ it("creates a team, assigns a task, and persists status changes", async () => {
     ).toBe("Done"),
   );
 });
+
 it("adds a registered user to a team", async () => {
   start();
   await team();
@@ -102,6 +111,7 @@ it("adds a registered user to a team", async () => {
     ),
   );
 });
+
 it("keeps discussion replies in their topic", async () => {
   start();
   await team();
@@ -129,6 +139,7 @@ it("keeps discussion replies in their topic", async () => {
     await screen.findByText("I will check the tests."),
   ).toBeInTheDocument();
 });
+
 it("uploads to a personal library and explicitly shares the file into a chosen conversation", async () => {
   start();
   nav("Storage");
@@ -157,6 +168,7 @@ it("uploads to a personal library and explicitly shares the file into a chosen c
     Object.values(loadDemo().messages).find((m) => m.attachment)?.recipient,
   ).toBe("hardik");
 });
+
 it("favorites a private chat and displays the email in the sidebar", async () => {
   start();
   expect(screen.getByText("mayur@example.com")).toBeInTheDocument();
@@ -169,6 +181,7 @@ it("favorites a private chat and displays the email in the sidebar", async () =>
     screen.getAllByRole("button", { name: /^(Offline|Online) Hardik/ }),
   ).toHaveLength(2);
 });
+
 it("updates profile details and the selected theme", async () => {
   start();
   fireEvent.click(screen.getByLabelText("Edit profile"));
@@ -190,6 +203,7 @@ it("updates profile details and the selected theme", async () => {
     expect(document.documentElement.dataset.theme).toBe("dark"),
   );
 });
+
 it("schedules an event in the selected project", async () => {
   start();
   await team();
@@ -226,6 +240,7 @@ it("opens on the dashboard and keeps sidebar navigation flat", () => {
   expect(taskLink).not.toHaveAttribute("aria-expanded");
   expect(screen.getByLabelText("Selected team")).toBeInTheDocument();
 });
+
 it("uses a header search and notifications while keeping chat navigation in the chat area", async () => {
   start();
   const navigation = screen.getByRole("navigation", {
@@ -294,6 +309,7 @@ it("opens mobile search below the header and dismisses it with Escape or a resul
     vi.unstubAllGlobals();
   }
 });
+
 it("keeps notifications in a dismissible popup without replacing the current page", () => {
   start();
   fireEvent.click(screen.getByLabelText("Notifications"));
@@ -439,6 +455,7 @@ it("pauses and restores a member's team access from the member menu", async () =
     ),
   );
 });
+
 it("copies and moves file references without overwriting the original", async () => {
   const data = loadDemo();
   data.library = {
@@ -488,6 +505,7 @@ it("copies and moves file references without overwriting the original", async ()
   );
   expect(Object.keys(loadDemo().library.files)).toHaveLength(3);
 });
+
 it("offers day, week, month and year calendar views", async () => {
   start();
   await team();
@@ -544,6 +562,7 @@ it("confirms ownership transfer and removes owner actions from the previous owne
     screen.queryByLabelText("Member options for Hardik Maheshwari"),
   ).not.toBeInTheDocument();
 });
+
 it("persists the chat layout preference and changes the message presentation", async () => {
   start();
   nav("Settings");
@@ -624,6 +643,7 @@ it("moves a file from My files into a team library and back without losing its U
     data.library.files.original.url,
   );
 });
+
 it("keeps a transfer dialog open while its save is pending, including Escape", async () => {
   let finish;
   const close = vi.fn();
@@ -652,6 +672,7 @@ it("keeps a transfer dialog open while its save is pending, including Escape", a
   finish();
   await waitFor(() => expect(close).toHaveBeenCalledOnce());
 });
+
 it("resets content scrolling when navigating between workspace sections", async () => {
   start();
   await team();
@@ -743,6 +764,7 @@ it("loads the persisted photo when the user directory arrives after the profile 
     await screen.findByRole("img", { name: demoUser.name }),
   ).toHaveAttribute("src", photoURL);
 });
+
 it("automatically removes a saved profile photo and keeps the removal across reload", async () => {
   const data = loadDemo();
   data.users.mayur.photoURL =
@@ -761,6 +783,7 @@ it("automatically removes a saved profile photo and keeps the removal across rel
     screen.queryByRole("img", { name: demoUser.name }),
   ).not.toBeInTheDocument();
 });
+
 it("retains the previous photo when automatic photo persistence fails", async () => {
   const photoURL = "https://res.cloudinary.com/demo/image/upload/saved.png";
   const save = vi.fn(),

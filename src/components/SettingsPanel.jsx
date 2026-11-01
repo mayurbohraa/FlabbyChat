@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Palette, Bell } from "lucide-react";
+
 export default function SettingsPanel({ preferences, onSetting, run }) {
   const [section, setSection] = useState("Appearance");
   const sections = [

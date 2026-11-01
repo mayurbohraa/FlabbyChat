@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MoreHorizontal } from "lucide-react";
+
 // A body portal keeps menus clear of scroll-panel clipping.
 export default function ActionMenu({
   label = "More options",
@@ -13,6 +14,7 @@ export default function ActionMenu({
     [position, setPosition] = useState({ top: 0, left: 0 });
   const trigger = useRef(null),
     menu = useRef(null);
+
   useEffect(() => {
     if (!open) return;
     const bounds = trigger.current.getBoundingClientRect();
@@ -73,6 +75,7 @@ export default function ActionMenu({
       document.removeEventListener("keydown", dismiss);
     };
   }, [open, actions.length]);
+
   return (
     <>
       <button

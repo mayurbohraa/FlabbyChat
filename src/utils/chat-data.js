@@ -1,16 +1,20 @@
 // Small helpers shared by the chat screen and its tests.
 export const uid = () => crypto.randomUUID();
+
 export const demoUser = {
   id: "mayur",
   name: "Mayur Bohra",
   email: "mayur@example.com",
 };
+
 export const general = {
   id: "general",
   name: "general",
   description: "General discussion for the project.",
 };
+
 export const conversationId = (a, b) => "dm-" + [a, b].sort().join("--");
+
 export function sampleChat() {
   const now = Date.now();
   return {
@@ -49,17 +53,22 @@ export function sampleChat() {
     presence: {},
   };
 }
+
 const key = "flabbychat.simple-demo.v1";
+
 export function loadDemo() {
   const raw = localStorage.getItem(key);
   return raw ? JSON.parse(raw) : sampleChat();
 }
+
 export function saveDemo(data) {
   localStorage.setItem(key, JSON.stringify(data));
   // Browser storage events do not fire in the tab that performed the write.
   window.dispatchEvent(new Event("flabbychat:demo"));
 }
+
 export const demoStorageKey = key;
+
 export function filterMessages(messages, query = "") {
   const term = query.trim().toLowerCase();
   return Object.values(messages || {})
@@ -68,17 +77,20 @@ export function filterMessages(messages, query = "") {
     )
     .sort((a, b) => a.createdAt - b.createdAt);
 }
+
 export function unreadCount(messages, lastRead = 0, userId) {
   return Object.values(messages || {}).filter(
     (m) => m.userId !== userId && m.createdAt > lastRead,
   ).length;
 }
+
 export function validateSignup(name, password, confirm) {
   if (!name.trim()) return "Enter your name.";
   if (password.length < 8) return "Use a password with at least 8 characters.";
   if (password !== confirm) return "The passwords do not match.";
   return "";
 }
+
 export function friendlyError(error) {
   const messages = {
     "auth/invalid-credential": "Incorrect email or password.",

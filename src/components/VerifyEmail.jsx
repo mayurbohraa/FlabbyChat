@@ -2,12 +2,14 @@ import React, { useEffect, useState } from "react";
 import logo from "../assets/images/FlabbyChatLogo.png";
 import * as cloud from "../services/cloud.js";
 import { friendlyError } from "../utils/chat-data.js";
+
 export default function VerifyEmail({ user, onVerified, onLogout }) {
   const [status, setStatus] = useState("Sending verification email…");
   const [error, setError] = useState("");
   const [sending, setSending] = useState(true);
   const [checking, setChecking] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+
   useEffect(() => {
     let active = true;
     cloud
@@ -32,6 +34,7 @@ export default function VerifyEmail({ user, onVerified, onLogout }) {
       active = false;
     };
   }, [user.uid]);
+
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(
@@ -40,6 +43,7 @@ export default function VerifyEmail({ user, onVerified, onLogout }) {
     );
     return () => clearTimeout(timer);
   }, [cooldown]);
+
   async function resend() {
     setSending(true);
     setError("");
@@ -53,6 +57,7 @@ export default function VerifyEmail({ user, onVerified, onLogout }) {
       setSending(false);
     }
   }
+
   async function check() {
     setChecking(true);
     setError("");
@@ -69,6 +74,7 @@ export default function VerifyEmail({ user, onVerified, onLogout }) {
       setChecking(false);
     }
   }
+
   return (
     <main className="auth-page">
       <section className="auth-card">

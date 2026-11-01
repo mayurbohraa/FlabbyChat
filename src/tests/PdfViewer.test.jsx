@@ -7,12 +7,16 @@ import {
   cleanup,
 } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
+
 const mocked = vi.hoisted(() => ({ getDocument: vi.fn() }));
+
 vi.mock("pdfjs-dist", () => ({
   getDocument: mocked.getDocument,
   GlobalWorkerOptions: {},
 }));
+
 import PdfViewer from "../components/PdfViewer.jsx";
+
 beforeEach(() => {
   vi.stubGlobal(
     "ResizeObserver",
@@ -22,10 +26,12 @@ beforeEach(() => {
     },
   );
 });
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+
 it("renders pages, changes zoom and destroys its PDF task when closed", async () => {
   const cancel = vi.fn(),
     destroy = vi.fn().mockResolvedValue();
@@ -52,6 +58,7 @@ it("renders pages, changes zoom and destroys its PDF task when closed", async ()
   expect(destroy).toHaveBeenCalled();
   expect(cancel).toHaveBeenCalled();
 });
+
 it("shows document parsing errors inside the viewer", async () => {
   mocked.getDocument.mockReturnValue({
     promise: Promise.reject(new Error("Invalid document")),

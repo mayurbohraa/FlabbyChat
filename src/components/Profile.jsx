@@ -4,6 +4,7 @@ import * as cloud from "../services/cloud.js";
 import Avatar from "./Avatar.jsx";
 import { prepareAttachment } from "../services/storage.js";
 import { friendlyError } from "../utils/chat-data.js";
+
 export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
   const photoInput = useRef(null);
   const [section, setSection] = useState("Details");
@@ -18,8 +19,10 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       password: "",
       confirm: "",
     });
+
   // The directory may hydrate after this screen mounts, including after reload.
   useEffect(() => setPhoto(user.photoURL || ""), [user.photoURL]);
+
   async function removePhoto() {
     if (busy) return;
     setBusy(true);
@@ -38,6 +41,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       setSavingPhoto(false);
     }
   }
+
   async function save(e) {
     e.preventDefault();
     if (busy) return;
@@ -62,6 +66,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       setBusy(false);
     }
   }
+
   async function upload(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -89,6 +94,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       setBusy(false);
     }
   }
+
   async function password(e) {
     e.preventDefault();
     setError("");
@@ -125,6 +131,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       setBusy(false);
     }
   }
+
   return (
     <div className="account-layout profile-layout">
       <div className="profile-summary">

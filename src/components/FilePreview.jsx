@@ -3,8 +3,10 @@ import { Download, FileText } from "lucide-react";
 import { Dialog } from "./ui.jsx";
 import { safeAttachmentUrl, downloadAttachment } from "../services/storage.js";
 import { friendlyError } from "../utils/chat-data.js";
+
 // Load the PDF renderer only when a document preview needs it.
 const PdfViewer = lazy(() => import("./PdfViewer.jsx"));
+
 export default function FilePreview({ file, onClose, onNotice }) {
   const [pdfData, setPdfData] = useState(null);
   const [error, setError] = useState("");
@@ -12,6 +14,7 @@ export default function FilePreview({ file, onClose, onNotice }) {
   const [busy, setBusy] = useState(false);
   const [retry, setRetry] = useState(0);
   const safeUrl = safeAttachmentUrl(file.url);
+
   useEffect(() => {
     let disposed = false;
     // Closing or switching previews must cancel the previous download.
@@ -49,6 +52,7 @@ export default function FilePreview({ file, onClose, onNotice }) {
       controller.abort();
     };
   }, [safeUrl, file.kind, retry]);
+
   return (
     <Dialog
       title={file.name || "File preview"}

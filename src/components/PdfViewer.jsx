@@ -2,8 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
 // Bundle the worker with the app rather than relying on an external CDN.
 GlobalWorkerOptions.workerSrc = workerUrl;
+
 export default function PdfViewer({ data, name }) {
   const [document, setDocument] = useState(null);
   const [page, setPage] = useState(1);
@@ -13,6 +15,7 @@ export default function PdfViewer({ data, name }) {
   const [rendering, setRendering] = useState(true);
   const container = useRef(null),
     canvas = useRef(null);
+
   useEffect(() => {
     let disposed = false;
     setError("");
@@ -39,6 +42,7 @@ export default function PdfViewer({ data, name }) {
       void task.destroy();
     };
   }, [data]);
+
   useEffect(() => {
     const node = container.current;
     if (!node) return;
@@ -48,6 +52,7 @@ export default function PdfViewer({ data, name }) {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
+
   useEffect(() => {
     if (!document) return;
     let disposed = false,
@@ -96,6 +101,7 @@ export default function PdfViewer({ data, name }) {
       task?.cancel();
     };
   }, [document, page, zoom, width]);
+
   return (
     <section
       className="pdf-viewer"

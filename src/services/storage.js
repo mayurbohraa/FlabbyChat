@@ -1,7 +1,10 @@
 // Cloudinary enforces allowed formats; the application checks the size limit.
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+
 const preset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 export const storageConfigured = Boolean(cloudName && preset);
+
 export const allowedTypes = [
   "image/jpeg",
   "image/png",
@@ -9,6 +12,7 @@ export const allowedTypes = [
   "image/gif",
   "application/pdf",
 ];
+
 export function validateFile(file, maxBytes) {
   if (!allowedTypes.includes(file.type))
     throw new Error("Choose a JPG, PNG, WebP, GIF, or PDF file.");
@@ -17,6 +21,7 @@ export function validateFile(file, maxBytes) {
       `Choose a file smaller than ${maxBytes >= 1024 * 1024 ? "5 MB" : "250 KB"}.`,
     );
 }
+
 // Previews and downloads accept only Cloudinary URLs or supported embedded files.
 export function safeAttachmentUrl(value) {
   try {
@@ -32,6 +37,7 @@ export function safeAttachmentUrl(value) {
     return null;
   }
 }
+
 export async function prepareAttachment(file, local = false) {
   const useCloud = !local && storageConfigured;
   validateFile(file, useCloud ? 5 * 1024 * 1024 : 250 * 1024);

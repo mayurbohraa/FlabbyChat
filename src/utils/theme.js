@@ -5,6 +5,7 @@ export function savedTheme() {
     return "system";
   }
 }
+
 // Keep the last appearance choice available before account preferences load.
 export function applyTheme(value = savedTheme()) {
   const mode = ["light", "dark", "system"].includes(value) ? value : "system";

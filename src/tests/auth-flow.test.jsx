@@ -10,7 +10,9 @@ import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import App from "../App.jsx";
 import Auth from "../components/Auth.jsx";
 import * as cloud from "../services/cloud.js";
+
 const session = vi.hoisted(() => ({ user: null, listener: null }));
+
 vi.mock("../services/cloud.js", () => ({
   configured: true,
   watchAuth: vi.fn((callback) => {
@@ -26,9 +28,11 @@ vi.mock("../services/cloud.js", () => ({
   signup: vi.fn(),
   logout: vi.fn(async () => session.listener(null)),
 }));
+
 vi.mock("../components/Chat.jsx", () => ({
   default: () => <div>Verified chat</div>,
 }));
+
 beforeEach(() => {
   session.user = {
     uid: "student",
@@ -41,7 +45,9 @@ beforeEach(() => {
   cloud.resetPassword.mockResolvedValue();
   cloud.refreshVerification.mockResolvedValue(session.user);
 });
+
 afterEach(cleanup);
+
 it("sends a verification email and blocks an unverified user from chat and profile writes", async () => {
   render(<App />);
   expect(
@@ -52,6 +58,7 @@ it("sends a verification email and blocks an unverified user from chat and profi
   expect(cloud.ensureProfile).not.toHaveBeenCalled();
   expect(screen.getByText("student@example.com")).toBeInTheDocument();
 });
+
 it("keeps the verification screen when the email is still unverified", async () => {
   render(<App />);
   const check = await screen.findByRole("button", {
@@ -64,6 +71,7 @@ it("keeps the verification screen when the email is still unverified", async () 
   ).toBeInTheDocument();
   expect(cloud.ensureProfile).not.toHaveBeenCalled();
 });
+
 it("opens chat only after refreshing a verified user and prepares their profile", async () => {
   cloud.refreshVerification.mockResolvedValue({
     ...session.user,
@@ -80,6 +88,7 @@ it("opens chat only after refreshing a verified user and prepares their profile"
     expect.objectContaining({ emailVerified: true }),
   );
 });
+
 it("allows retry when the verification email could not be sent", async () => {
   cloud.sendVerification.mockRejectedValueOnce({
     code: "auth/too-many-requests",
@@ -95,6 +104,7 @@ it("allows retry when the verification email could not be sent", async () => {
     await screen.findByText(/Verification email sent/),
   ).toBeInTheDocument();
 });
+
 it("sends a reset email and returns to login without showing a password field on reset", async () => {
   render(<Auth onDemo={() => {}} />);
   fireEvent.change(screen.getByLabelText("Email address"), {
@@ -116,6 +126,7 @@ it("sends a reset email and returns to login without showing a password field on
   fireEvent.click(screen.getByRole("button", { name: "Back to login" }));
   expect(screen.getByLabelText("Password")).toBeInTheDocument();
 });
+
 it("does not reveal whether a reset email belongs to an existing account", async () => {
   cloud.resetPassword.mockRejectedValueOnce({ code: "auth/user-not-found" });
   render(<Auth onDemo={() => {}} />);

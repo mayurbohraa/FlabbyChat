@@ -1,7 +1,10 @@
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import { createCall } from "../services/calls.js";
+
 const state = vi.hoisted(() => ({ tree: {}, peer: null, track: null }));
+
 vi.mock("../services/cloud.js", () => ({ db: {} }));
+
 vi.mock("firebase/database", () => {
   const read = (path) =>
     path.split("/").reduce((node, key) => node?.[key], state.tree) ?? null;
@@ -33,6 +36,7 @@ vi.mock("firebase/database", () => {
     serverTimestamp: () => Date.now(),
   };
 });
+
 beforeEach(() => {
   state.tree = {};
   vi.useFakeTimers();
@@ -71,10 +75,12 @@ beforeEach(() => {
     },
   );
 });
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+
 it("records one completed call with duration when both clients finish", async () => {
   const user = { id: "a", name: "Alice" },
     other = { id: "b", name: "Bob" };
@@ -99,6 +105,7 @@ it("records one completed call with duration when both clients finish", async ()
   });
   expect(state.track.stop).toHaveBeenCalled();
 });
+
 it("records missed and declined calls separately", async () => {
   const user = { id: "a", name: "Alice" },
     other = { id: "b", name: "Bob" };

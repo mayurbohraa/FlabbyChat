@@ -5,8 +5,11 @@ import {
   transferLibraryFile,
 } from "../services/cloud.js";
 import { set, onValue, update } from "firebase/database";
+
 vi.mock("firebase/app", () => ({ initializeApp: () => ({}) }));
+
 vi.mock("firebase/auth", () => ({ getAuth: () => ({}) }));
+
 vi.mock("firebase/database", () => ({
   getDatabase: () => null,
   ref: (_db, path) => path,
@@ -18,6 +21,7 @@ vi.mock("firebase/database", () => ({
   runTransaction: vi.fn(),
   serverTimestamp: vi.fn(),
 }));
+
 it("stores text and attachment together under their group channel", () => {
   const message = {
     id: "message-1",
@@ -47,6 +51,7 @@ it("stores text and attachment together under their group channel", () => {
   );
   expect(onValue.mock.calls.at(-1)[0]).toBe("collegeChat/messages/project");
 });
+
 it("stores and reads a private attachment only at the participants’ conversation path", () => {
   const message = {
     id: "private-1",

@@ -8,7 +8,9 @@ import {
   validateSignup,
   friendlyError,
 } from "../utils/chat-data.js";
+
 beforeEach(() => localStorage.clear());
+
 describe("chat helpers", () => {
   it("stores and restores messages", () => {
     const data = loadDemo();

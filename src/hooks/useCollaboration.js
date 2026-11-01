@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import * as cloud from "../services/cloud.js";
 import { loadDemo, saveDemo, uid, friendlyError } from "../utils/chat-data.js";
+
 export default function useCollaboration(user, demo) {
   const [teams, setTeams] = useState({}),
     [library, setLibrary] = useState({ files: {}, folders: {} }),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(!demo);
+
   useEffect(() => {
     if (demo) {
       const sync = () => {
@@ -47,12 +49,14 @@ export default function useCollaboration(user, demo) {
       b();
     };
   }, [user.id, demo]);
+
   // Demo mutations stay in browser storage and notify the same-tab subscribers.
   async function local(fn) {
     const data = loadDemo();
     fn(data);
     saveDemo(data);
   }
+
   return {
     teams,
     library,

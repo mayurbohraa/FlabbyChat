@@ -61,9 +61,11 @@ import {
   friendlyError,
   demoStorageKey,
 } from "../utils/chat-data.js";
+
 function ChannelDialog({ onClose, onCreate }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
   async function submit(e) {
     e.preventDefault();
     const fields = Object.fromEntries(new FormData(e.currentTarget));
@@ -86,6 +88,7 @@ function ChannelDialog({ onClose, onCreate }) {
       setBusy(false);
     }
   }
+
   return (
     <Dialog
       title="Create channel"
@@ -130,6 +133,7 @@ function ChannelDialog({ onClose, onCreate }) {
     </Dialog>
   );
 }
+
 export default function Chat({ user, demo, onLogout, initialError = "" }) {
   const mobileLayout = useMedia("(max-width:700px)"),
     chatDrawer = useMedia("(max-width:1050px)");
@@ -183,6 +187,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     callRef = useRef(null),
     selectionRef = useRef(selected.id);
   const currentUser = { ...user, ...(data.users?.[user.id] || {}) };
+
   useEffect(() => {
     const input = messageInput.current;
     if (!input) return;
@@ -197,6 +202,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, [text, view, selected.id]);
+
   const notifications = notificationItems(
     allMessages,
     model.teams,
@@ -207,11 +213,14 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   const notificationCount = notifications.filter(
     (n) => !preferences.notificationRead?.[n.id],
   ).length;
+
   useEffect(() => {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
+
   useEffect(() => {
     if (!searchOpen && !notificationsOpen) return;
+
     function dismiss(e) {
       if (e.type === "keydown" && e.key !== "Escape") return;
       if (e.type !== "keydown" && headerRef.current?.contains(e.target)) return;
@@ -219,6 +228,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       setNotificationsOpen(false);
       setGlobalSearch("");
     }
+
     document.addEventListener("pointerdown", dismiss);
     document.addEventListener("keydown", dismiss);
     return () => {
@@ -226,14 +236,17 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       document.removeEventListener("keydown", dismiss);
     };
   }, [searchOpen, notificationsOpen]);
+
   useEffect(() => {
     applyTheme(preferences.settings?.theme || savedTheme());
   }, [preferences.settings?.theme]);
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 6000);
     return () => clearTimeout(timer);
   }, [notice]);
+
   useEffect(() => {
     if (
       !preferences.settings?.browserNotifications ||
@@ -253,6 +266,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       }
     }
   }, [allMessages, model.teams, preferences.settings?.browserNotifications]);
+
   const channel = selected.private
     ? {
         id: selected.id,
@@ -273,9 +287,11 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   const channelKeys = Object.keys(data.channels || {})
     .sort()
     .join(",");
+
   function report(err) {
     setError(friendlyError(err));
   }
+
   useEffect(() => {
     if (demo) return;
     const stopDirectory = cloud.watchDirectory(setData, report);
@@ -326,6 +342,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       callRef.current?.end();
     };
   }, [demo, user.id]);
+
   useEffect(() => {
     if (!demo) return;
     try {
@@ -352,6 +369,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       window.removeEventListener("flabbychat:demo", sameTab);
     };
   }, [demo]);
+
   useEffect(() => {
     selectionRef.current = selected.id;
     setQuery("");
@@ -378,6 +396,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       },
     );
   }, [selected.id, user.id, demo]);
+
   useEffect(() => {
     if (!demo) return;
     setMessages(
@@ -405,6 +424,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       ),
     );
   }, [data, selected.id, demo, user.id]);
+
   useEffect(() => {
     if (demo) return;
     return cloud.watchUnread(
@@ -415,10 +435,12 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       report,
     );
   }, [demo, user.id, userKeys, channelKeys]);
+
   const newest = Object.values(messages).reduce(
     (max, m) => Math.max(max, m.createdAt),
     0,
   );
+
   useEffect(() => {
     if (!newest || view !== "Chat" || document.visibilityState === "hidden")
       return;
@@ -437,9 +459,11 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       }
     } else cloud.markRead(user.id, selected.id, timestamp).catch(report);
   }, [selected.id, newest, demo, user.id, view]);
+
   useEffect(() => {
     bottom.current?.scrollIntoView?.({ behavior: "smooth" });
   }, [selected.id, newest]);
+
   async function updateDemo(mutator) {
     const next = loadDemo();
     mutator(next);
@@ -447,6 +471,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     setData(next);
     setPreferences(next.preferences || {});
   }
+
   function select(next) {
     setGlobalSearch("");
     selectionRef.current = next.id;
@@ -460,6 +485,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     setDeleteTarget(null);
     setError("");
   }
+
   async function send(e) {
     e.preventDefault();
     if (busy || (!text.trim() && !attachment)) return;
@@ -508,6 +534,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       setBusy(false);
     }
   }
+
   async function chooseFile(e) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -529,6 +556,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       setBusy(false);
     }
   }
+
   async function toggleFavorite(id = selected.id) {
     if (typeof id !== "string") id = selected.id;
     try {
@@ -548,6 +576,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       report(err);
     }
   }
+
   async function addChannel(value) {
     if (Object.values(data.channels).some((c) => c.name === value.name))
       throw new Error("A channel with this name already exists.");
@@ -558,6 +587,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     else await cloud.addChannel({ ...value, createdBy: user.id });
     select({ id: value.id, private: false });
   }
+
   async function removeMessage() {
     if (demo)
       await updateDemo((next) => {
@@ -567,6 +597,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     setDeleteTarget(null);
     setNotice("Message deleted.");
   }
+
   function startCall(video) {
     if (demo) {
       setError(
@@ -583,11 +614,13 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     setCall(session);
     session.start();
   }
+
   function count(id) {
     return selected.id === id && view === "Chat"
       ? 0
       : unreadCount(allMessages[id], preferences.lastRead?.[id] || 0, user.id);
   }
+
   async function saveSetting(key, value) {
     if (demo)
       await updateDemo((next) => {
@@ -599,6 +632,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     else await cloud.setSetting(user.id, key, value);
     if (key === "theme") applyTheme(value);
   }
+
   async function markNotification(id) {
     if (demo)
       await updateDemo((next) => {
@@ -612,6 +646,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       });
     else await cloud.readNotification(user.id, id);
   }
+
   async function saveUserProfile(profile) {
     if (demo)
       await updateDemo((next) => {
@@ -619,6 +654,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       });
     else await cloud.saveProfile(profile);
   }
+
   // Photo changes persist separately from the name/bio form submission.
   async function saveUserPhoto(photoURL) {
     if (demo)
@@ -627,6 +663,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       });
     else await cloud.saveProfilePhoto(photoURL);
   }
+
   function navigate(next, item) {
     setSearchOpen(false);
     setNotificationsOpen(false);
@@ -649,6 +686,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       else select({ id: item.chat, private: false });
     }
   }
+
   function privateButton(person, favoriteList = false) {
     const id = conversationId(user.id, person.id),
       unread = count(id);
@@ -695,6 +733,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       </div>
     );
   }
+
   const sectionLabels = {
     Dashboard: "Dashboard",
     Chat: "Chat",
@@ -785,6 +824,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       }),
     );
   }
+
   function channelButton(c) {
     const unread = count(c.id);
     return (
@@ -822,6 +862,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       </div>
     );
   }
+
   return (
     <div className="chat-app">
       <aside
@@ -1704,6 +1745,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     </div>
   );
 }
+
 function DeleteDialog({ onClose, onConfirm }) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");

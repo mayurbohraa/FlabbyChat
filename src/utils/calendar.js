@@ -1,8 +1,10 @@
 // Store local calendar dates without converting them through UTC.
 export const dateKey = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 // Local noon avoids midnight timezone/DST edges when navigating date-only values.
 export const fromKey = (value) => new Date(value + "T12:00:00");
+
 export function periodDates(value, mode) {
   const date = fromKey(value);
   if (mode === "Day") return [value];
@@ -20,6 +22,7 @@ export function periodDates(value, mode) {
     (_, i) => dateKey(new Date(date.getFullYear(), date.getMonth(), i + 1)),
   );
 }
+
 export function shiftDate(value, mode, direction) {
   const date = fromKey(value);
   if (mode === "Year") date.setFullYear(date.getFullYear() + direction);
@@ -37,6 +40,7 @@ export function shiftDate(value, mode, direction) {
   } else date.setDate(date.getDate() + direction * (mode === "Week" ? 7 : 1));
   return dateKey(date);
 }
+
 export function callSummary(call) {
   const type = call.video ? "Video call" : "Voice call";
   if (call.duration > 0) {

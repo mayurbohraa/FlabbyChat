@@ -8,7 +8,9 @@ import {
 } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import CallDialog from "../components/CallDialog.jsx";
+
 let stateChanged, audio;
+
 beforeEach(() => {
   HTMLDialogElement.prototype.showModal = function () {
     this.open = true;
@@ -22,10 +24,12 @@ beforeEach(() => {
     }),
   );
 });
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
+
 it("rings for an incoming call and stops when connecting", async () => {
   const session = {
     incoming: true,
@@ -45,6 +49,7 @@ it("rings for an incoming call and stops when connecting", async () => {
   fireEvent.click(screen.getByRole("button", { name: "Accept" }));
   await waitFor(() => expect(audio.pause).toHaveBeenCalled());
 });
+
 it("declines an incoming call with an explicit outcome", async () => {
   const session = {
     incoming: true,

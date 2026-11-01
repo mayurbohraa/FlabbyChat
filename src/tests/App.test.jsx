@@ -13,16 +13,19 @@ import App from "../App.jsx";
 import Auth from "../components/Auth.jsx";
 import * as cloud from "../services/cloud.js";
 import * as storage from "../services/storage.js";
+
 vi.mock("../services/cloud.js", () => ({
   configured: false,
   watchAuth: () => () => {},
   login: vi.fn(),
   signup: vi.fn(),
 }));
+
 vi.mock("../services/calls.js", () => ({
   watchIncoming: () => () => {},
   createCall: vi.fn(),
 }));
+
 beforeEach(() => {
   localStorage.clear();
   HTMLDialogElement.prototype.showModal = function () {
@@ -32,10 +35,12 @@ beforeEach(() => {
     this.open = false;
   };
 });
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+
 function demo() {
   render(<App />);
   fireEvent.click(
@@ -47,6 +52,7 @@ function demo() {
     ).getByRole("button", { name: "Chat", exact: true }),
   );
 }
+
 it("opens on login and provides a separate signup form", () => {
   render(<App />);
   expect(
@@ -59,6 +65,7 @@ it("opens on login and provides a separate signup form", () => {
   expect(screen.queryByText("Tasks")).not.toBeInTheDocument();
   expect(screen.queryByText(/College chat project/)).not.toBeInTheDocument();
 });
+
 it("shows mismatched passwords without creating an account", () => {
   render(<Auth onDemo={() => {}} />);
   fireEvent.click(screen.getByRole("button", { name: "Sign up" }));
@@ -78,6 +85,7 @@ it("shows mismatched passwords without creating an account", () => {
   expect(screen.getByRole("alert")).toHaveTextContent("passwords do not match");
   expect(cloud.signup).not.toHaveBeenCalled();
 });
+
 it("saves a sent message across reloads", async () => {
   demo();
   fireEvent.change(screen.getByLabelText("Message"), {
@@ -93,6 +101,7 @@ it("saves a sent message across reloads", async () => {
     await screen.findByText("Please check the project report"),
   ).toBeInTheDocument();
 });
+
 it("creates a channel and adds it to favorites", async () => {
   demo();
   fireEvent.click(screen.getByLabelText("Create channel"));
@@ -116,6 +125,7 @@ it("creates a channel and adds it to favorites", async () => {
     expect(screen.getByLabelText("Remove from favorites")).toBeInTheDocument(),
   );
 });
+
 it("keeps private messages out of a group channel", async () => {
   demo();
   fireEvent.click(
@@ -131,6 +141,7 @@ it("keeps private messages out of a group channel", async () => {
     expect(screen.queryByText("Private project note")).not.toBeInTheDocument(),
   );
 });
+
 it("attaches an image to a message", async () => {
   demo();
   fireEvent.change(screen.getByLabelText("Choose file"), {
@@ -149,6 +160,7 @@ it("attaches an image to a message", async () => {
   fireEvent.click(screen.getByLabelText("Close dialog"));
   expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
+
 it("returns to the login screen after leaving demo", async () => {
   demo();
   fireEvent.click(screen.getByLabelText("Account menu"));
@@ -159,6 +171,7 @@ it("returns to the login screen after leaving demo", async () => {
     await screen.findByRole("heading", { name: "Login to your account" }),
   ).toBeInTheDocument();
 });
+
 it("keeps the message draft when saving fails", async () => {
   demo();
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
@@ -173,6 +186,7 @@ it("keeps the message draft when saving fails", async () => {
   );
   expect(screen.getByLabelText("Message")).toHaveValue("Unsent message");
 });
+
 it("sends a PDF as an in-app preview attachment", async () => {
   demo();
   fireEvent.change(screen.getByLabelText("Choose file"), {
@@ -191,6 +205,7 @@ it("sends a PDF as an in-app preview attachment", async () => {
     screen.queryByRole("link", { name: /project.pdf/ }),
   ).not.toBeInTheDocument();
 });
+
 it("restores each chat’s text and attachment draft separately", async () => {
   demo();
   fireEvent.change(screen.getByLabelText("Message"), {
@@ -230,6 +245,7 @@ it("restores each chat’s text and attachment draft separately", async () => {
     await screen.findByRole("button", { name: "Preview group.pdf" }),
   ).toBeInTheDocument();
 });
+
 it("keeps an upload in its originating chat when conversations change", async () => {
   let completeUpload;
   vi.spyOn(storage, "prepareAttachment").mockImplementation(
@@ -315,6 +331,7 @@ it("replies within the selected conversation and deletes own messages from the m
     screen.queryByLabelText("Export conversation"),
   ).not.toBeInTheDocument();
 });
+
 it("opens profile and logout in the round account menu", () => {
   demo();
   fireEvent.click(screen.getByLabelText("Account menu"));

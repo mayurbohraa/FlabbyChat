@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Bell, CheckCheck } from "lucide-react";
 import { friendlyError } from "../utils/chat-data.js";
+
 export default function NotificationDropdown({
   notifications,
   preferences,
