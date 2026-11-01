@@ -11,6 +11,7 @@ export default function Profile({ user, demo, onSave, onNotice }) {
   const [photo, setPhoto] = useState(user.photoURL || ""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [uploading, setUploading] = useState(false),
     [passwords, setPasswords] = useState({
       current: "",
       password: "",
@@ -18,6 +19,7 @@ export default function Profile({ user, demo, onSave, onNotice }) {
     });
   async function save(e) {
     e.preventDefault();
+    if (busy) return;
     const data = Object.fromEntries(new FormData(e.currentTarget));
     setBusy(true);
     setError("");
@@ -44,6 +46,7 @@ export default function Profile({ user, demo, onSave, onNotice }) {
     e.target.value = "";
     if (!file) return;
     setBusy(true);
+    setUploading(true);
     setError("");
     setErrorField("");
     try {
@@ -55,6 +58,7 @@ export default function Profile({ user, demo, onSave, onNotice }) {
       setErrorField("photo");
       setError(friendlyError(err));
     } finally {
+      setUploading(false);
       setBusy(false);
     }
   }
@@ -157,7 +161,7 @@ export default function Profile({ user, demo, onSave, onNotice }) {
                 onClick={() => photoInput.current.click()}
               >
                 <Camera size={16} />
-                Choose photo
+                {uploading ? "Uploading…" : "Choose photo"}
               </button>
               {photo && (
                 <button
@@ -225,7 +229,11 @@ export default function Profile({ user, demo, onSave, onNotice }) {
           </label>
           <footer className="account-card-footer">
             <button className="primary" disabled={busy}>
-              {busy ? "Saving…" : "Save profile"}
+              {uploading
+                ? "Uploading photo…"
+                : busy
+                  ? "Saving…"
+                  : "Save profile"}
             </button>
           </footer>
         </form>

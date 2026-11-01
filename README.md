@@ -11,7 +11,7 @@ Dashboard opens after login. The approved layout separates the sidebar, header a
 ## Features
 
 - Email/password login and signup, email verification, resend and password reset.
-- Profile name, photo and bio editing, verified email display and password changes with current-password confirmation. Saved photos appear across navigation, conversations, teams, dashboard members, board authors and calls.
+- Profile name, photo and bio editing, verified email display and password changes with current-password confirmation. Saved photos appear across navigation, conversations, teams, dashboard members, board authors and calls. Profile saves use the shared user record directly; offline or unconfirmed saves show a retryable message and preserve the selected photo.
 - Channels and private chats with search, image/PDF attachments, conversation drafts, timestamps, replies and message actions.
 - Favorites for channels and private chats.
 - Green/red presence dots show visible, connected sessions. Hidden tabs, logout and disconnects go offline; multiple tabs are tracked independently.
@@ -83,7 +83,7 @@ npm run build
 npm run preview
 ```
 
-Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest local run passed 86 tests across 15 files. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
+Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest full suite passed 86 tests across 15 files. A subsequent profile-save regression run passed 37 tests covering profile persistence, timeouts, retries and related account/team workflows. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
 
 Production output goes to `build/`. Firebase hosting configuration and database rules are included. After reviewing the rules and checking cloud workflows, deployment can be run explicitly with Firebase CLI:
 

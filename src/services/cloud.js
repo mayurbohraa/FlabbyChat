@@ -321,16 +321,38 @@ export function watchUnread(channels, users, userId, callback, onError) {
 // Call signaling is in calls.js. Media travels through WebRTC, not the database.
 export { ref, onValue, set, update, remove };
 export async function saveProfile(profile) {
-  const user = auth.currentUser;
-  await updateProfile(user, {
-    displayName: profile.name,
-    photoURL: profile.photoURL || null,
-  });
-  await update(path("users/" + user.uid), {
-    name: profile.name,
-    bio: profile.bio || "",
-    photoURL: profile.photoURL || "",
-  });
+  const user = auth?.currentUser;
+  if (!user) throw new Error("Sign in again to save your profile.");
+  if (navigator.onLine === false)
+    throw new Error(
+      "You are offline. Reconnect, then save your profile again.",
+    );
+  // The shared directory is the profile source for every screen in the app.
+  // Authentication manages credentials; its profile API must not block this save.
+  let timeout;
+  try {
+    await Promise.race([
+      update(path("users/" + user.uid), {
+        id: user.uid,
+        name: profile.name,
+        bio: profile.bio || "",
+        photoURL: profile.photoURL || "",
+      }),
+      new Promise((_, reject) => {
+        timeout = setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Profile save was not confirmed. Check your connection and try again. It may still sync when you reconnect.",
+              ),
+            ),
+          15000,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 export async function changePassword(current, password) {
   const user = auth.currentUser;

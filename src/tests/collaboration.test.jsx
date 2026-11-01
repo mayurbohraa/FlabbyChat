@@ -697,3 +697,33 @@ it("saves a profile photo across chat, team, dashboard and reload", async () => 
   for (const image of screen.getAllByRole("img", { name: "Mayur Bohra" }))
     expect(image).toHaveAttribute("src", url);
 });
+
+it("keeps the profile photo and enables retry after an unconfirmed save", async () => {
+  const photoURL = "https://res.cloudinary.com/demo/image/upload/avatar.png";
+  const save = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("Profile save was not confirmed."))
+    .mockResolvedValueOnce();
+  const notice = vi.fn();
+  render(
+    <Profile
+      user={{ ...demoUser, photoURL }}
+      demo
+      onSave={save}
+      onNotice={notice}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Profile save was not confirmed",
+  );
+  expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled();
+  expect(screen.getByRole("img", { name: demoUser.name })).toHaveAttribute(
+    "src",
+    photoURL,
+  );
+  expect(notice).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  await waitFor(() => expect(notice).toHaveBeenCalledWith("Profile updated."));
+  expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ photoURL }));
+});

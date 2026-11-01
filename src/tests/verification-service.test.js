@@ -220,16 +220,48 @@ it("does not publish a stopped session after disconnect cleanup finishes", async
   expect(set).not.toHaveBeenCalled();
 });
 
-it("persists a saved profile photo in Authentication and the shared user directory", async () => {
+it("saves the shared profile without waiting for an Authentication profile request", async () => {
   const photoURL = "https://res.cloudinary.com/demo/image/upload/avatar.png";
+  update.mockResolvedValueOnce();
+  updateProfile.mockImplementationOnce(() => new Promise(() => {}));
   await saveProfile({ name: "Student", bio: "College project", photoURL });
-  expect(updateProfile).toHaveBeenCalledWith(
-    expect.objectContaining({ uid: "student" }),
-    { displayName: "Student", photoURL },
-  );
+  expect(updateProfile).not.toHaveBeenCalled();
   expect(update).toHaveBeenCalledWith("collegeChat/users/student", {
+    id: "student",
     name: "Student",
     bio: "College project",
     photoURL,
   });
+  updateProfile.mockReset();
+});
+it("returns a retryable error when Firebase never confirms a profile save", async () => {
+  vi.useFakeTimers();
+  try {
+    update.mockImplementationOnce(() => new Promise(() => {}));
+    const pending = saveProfile({ name: "Student", photoURL: "" });
+    const failure = expect(pending).rejects.toThrow(
+      "Profile save was not confirmed",
+    );
+    await vi.advanceTimersByTimeAsync(15000);
+    await failure;
+    expect(vi.getTimerCount()).toBe(0);
+    update.mockResolvedValueOnce();
+    await expect(
+      saveProfile({ name: "Student", photoURL: "" }),
+    ).resolves.toBeUndefined();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+it("does not queue profile saves while the browser is offline", async () => {
+  const online = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+  try {
+    await expect(saveProfile({ name: "Student" })).rejects.toThrow(
+      "You are offline",
+    );
+    expect(update).not.toHaveBeenCalled();
+  } finally {
+    online.mockRestore();
+  }
 });
