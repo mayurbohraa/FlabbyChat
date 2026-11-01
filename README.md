@@ -1,7 +1,5 @@
 # FlabbyChat
 
-[Live app](https://flabby-chat.vercel.app/)
-
 Chat, calls and team collaboration for student teams.
 
 FlabbyChat is my college major project, bringing conversations, project tasks and shared documents into one app. I worked on project planning, research, full-stack development, UI design and the original FlabbyChat logo. The interface uses cyan/violet accents with light and dark themes.
@@ -89,3 +87,7 @@ Calls require HTTPS or localhost and microphone/camera permission.
 Import this repository as a Vite project. The included [vercel.json](vercel.json) sets the build command to `npm run build` and the output directory to `build`.
 
 Add the seven `VITE_` variables from `.env.example` to the Vercel project's environment variables before deploying; your local `.env.local` is not uploaded. Add the deployed hostname to Firebase Authentication's authorized domains. Redeploy after changing environment values.
+
+### Live deployment
+
+**Open FlabbyChat: [https://flabby-chat.vercel.app/](https://flabby-chat.vercel.app/)**
