@@ -29,6 +29,7 @@ export default function FileTransferDialog({
           value={destination}
           disabled={busy}
           onChange={(event) => {
+            // Folder IDs belong to one library; reset when the destination changes.
             setDestination(event.target.value);
             setFolder("");
             setError("");

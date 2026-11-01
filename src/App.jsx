@@ -38,6 +38,7 @@ export default function App() {
         }}
       />
     );
+  // Keep unverified accounts outside the cloud-backed workspace.
   if (!demo && !account.emailVerified)
     return (
       <VerifyEmail

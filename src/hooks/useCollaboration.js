@@ -47,6 +47,7 @@ export default function useCollaboration(user, demo) {
       b();
     };
   }, [user.id, demo]);
+  // Demo mutations stay in browser storage and notify the same-tab subscribers.
   async function local(fn) {
     const data = loadDemo();
     fn(data);
@@ -122,6 +123,7 @@ export default function useCollaboration(user, demo) {
         });
       else await cloud.addTeamMember(teamId, member);
     },
+    // Match the cloud operation with one persisted mutation in demo mode.
     async transferFile(sourceTeamId, destinationTeamId, sourceId, file, move) {
       if (demo)
         await local((data) => {

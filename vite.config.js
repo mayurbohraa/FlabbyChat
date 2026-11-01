@@ -4,6 +4,7 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: { entries: ["index.html"] },
   build: {
+    // Firebase Hosting and Vercel both publish this directory.
     outDir: "build",
     rollupOptions: {
       output: {

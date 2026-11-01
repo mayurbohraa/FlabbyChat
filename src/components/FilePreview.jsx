@@ -3,6 +3,7 @@ import { Download, FileText } from "lucide-react";
 import { Dialog } from "./ui.jsx";
 import { safeAttachmentUrl, downloadAttachment } from "../services/storage.js";
 import { friendlyError } from "../utils/chat-data.js";
+// Load the PDF renderer only when a document preview needs it.
 const PdfViewer = lazy(() => import("./PdfViewer.jsx"));
 export default function FilePreview({ file, onClose, onNotice }) {
   const [pdfData, setPdfData] = useState(null);
@@ -13,6 +14,7 @@ export default function FilePreview({ file, onClose, onNotice }) {
   const safeUrl = safeAttachmentUrl(file.url);
   useEffect(() => {
     let disposed = false;
+    // Closing or switching previews must cancel the previous download.
     const controller = new AbortController();
     setError("");
     setPdfData(null);
@@ -31,6 +33,7 @@ export default function FilePreview({ file, onClose, onNotice }) {
         const blob = await response.blob();
         if (blob.size > 5 * 1024 * 1024)
           throw new Error("This document exceeds the 5 MB preview limit.");
+        // Reject non-PDF responses even when a URL or filename looks like a PDF.
         const signature = await blob.slice(0, 5).text();
         if (signature !== "%PDF-")
           throw new Error("This file is not a valid PDF document.");

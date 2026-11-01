@@ -18,6 +18,7 @@ const historyRef = (a, b, id) => {
   const [first, second] = [a, b].sort();
   return ref(db, `collegeChat/callHistory/${first}/${second}/${id}`);
 };
+// Both endpoints may finish together; transactions preserve the first outcome.
 async function finishRecord(id, userId, reason) {
   const result = await runTransaction(callRef(id), (current) => {
     if (!current) return current;
@@ -101,12 +102,14 @@ export function createCall({ user, other, video = false, incoming = null }) {
     listeners.forEach((fn) => fn(view));
   };
   const isCaller = !incoming;
+  // ICE candidates can arrive before the remote description is ready.
   async function flushCandidates() {
     if (!peer?.remoteDescription) return;
     const candidates = pendingCandidates;
     pendingCandidates = [];
     for (const candidate of candidates) await peer.addIceCandidate(candidate);
   }
+  // Release listeners, peer state and device tracks on every exit path.
   function stopMedia() {
     clearTimeout(timer);
     stops.forEach((fn) => fn());

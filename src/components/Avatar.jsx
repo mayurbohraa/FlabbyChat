@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { safeAttachmentUrl } from "../services/storage.js";
 
 export default function Avatar({ name = "?", photoURL, className = "avatar" }) {
+  // Remember the failed URL while allowing a newly saved photo to load normally.
   const [failedUrl, setFailedUrl] = useState(null);
   const url = safeAttachmentUrl(photoURL);
   if (url && failedUrl !== url)

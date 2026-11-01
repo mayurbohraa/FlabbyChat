@@ -56,6 +56,7 @@ export function loadDemo() {
 }
 export function saveDemo(data) {
   localStorage.setItem(key, JSON.stringify(data));
+  // Browser storage events do not fire in the tab that performed the write.
   window.dispatchEvent(new Event("flabbychat:demo"));
 }
 export const demoStorageKey = key;

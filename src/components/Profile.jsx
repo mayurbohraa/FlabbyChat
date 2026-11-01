@@ -18,6 +18,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       password: "",
       confirm: "",
     });
+  // The directory may hydrate after this screen mounts, including after reload.
   useEffect(() => setPhoto(user.photoURL || ""), [user.photoURL]);
   async function removePhoto() {
     if (busy) return;
@@ -75,6 +76,7 @@ export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
       const result = await prepareAttachment(file, demo);
       setUploading(false);
       setSavingPhoto(true);
+      // Uploading supplies a URL; saving it to the account makes it persistent.
       await onPhotoSave(result.url);
       setPhoto(result.url);
       onNotice("Profile photo saved.");

@@ -59,6 +59,7 @@ export default function CallDialog({
       "Busy",
     ].includes(state.phase);
   useEffect(() => {
+    // The effect cleanup stops the loop as soon as ringing ends or sound is disabled.
     const shouldRing =
       soundEnabled &&
       !ended &&

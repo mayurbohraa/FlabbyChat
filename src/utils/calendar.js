@@ -1,5 +1,7 @@
+// Store local calendar dates without converting them through UTC.
 export const dateKey = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+// Local noon avoids midnight timezone/DST edges when navigating date-only values.
 export const fromKey = (value) => new Date(value + "T12:00:00");
 export function periodDates(value, mode) {
   const date = fromKey(value);
@@ -23,6 +25,7 @@ export function shiftDate(value, mode, direction) {
   if (mode === "Year") date.setFullYear(date.getFullYear() + direction);
   else if (mode === "Month") {
     const day = date.getDate();
+    // Clamp month-end dates instead of letting Jan 31 roll into March.
     date.setDate(1);
     date.setMonth(date.getMonth() + direction);
     date.setDate(

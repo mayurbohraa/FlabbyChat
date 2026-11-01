@@ -16,6 +16,7 @@ export default function TaskBoard({
   search,
 }) {
   const [selected, setSelected] = useState(null);
+  // Resolve by ID so the open drawer follows live task updates.
   const task = tasks.find((t) => t.id === selected);
   const visible = tasks.filter(
     (t) =>

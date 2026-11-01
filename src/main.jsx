@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
+// Load base layout first, followed by shared UI and workspace refinements.
 import "./styles/chat.css";
 import "./styles/interface.css";
 import "./styles/workspace.css";

@@ -283,6 +283,7 @@ export default function Collaboration({
       throw new Error("That folder no longer exists. Choose another folder.");
     if (!library.files?.[file.id])
       throw new Error("This file is no longer in the library.");
+    // Keep IDs for moves within a library; use new IDs across libraries or on copy.
     const crossLibrary = sourceTeamId !== targetTeamId;
     let name = file.name;
     if (operation === "copy") {

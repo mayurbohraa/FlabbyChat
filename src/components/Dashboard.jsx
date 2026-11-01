@@ -24,6 +24,7 @@ export default function Dashboard({
   const mine = tasks
     .filter((t) => t.assignee === user.id && t.status !== "Done")
     .sort((a, b) => a.due.localeCompare(b.due));
+  // Both charts summarize the tasks in the teams this account can access.
   const counts = ["To do", "In progress", "Done"].map((status) => ({
     status,
     count: tasks.filter((t) => t.status === status).length,

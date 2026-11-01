@@ -17,6 +17,7 @@ export function validateFile(file, maxBytes) {
       `Choose a file smaller than ${maxBytes >= 1024 * 1024 ? "5 MB" : "250 KB"}.`,
     );
 }
+// Previews and downloads accept only Cloudinary URLs or supported embedded files.
 export function safeAttachmentUrl(value) {
   try {
     const url = new URL(value);
@@ -35,6 +36,7 @@ export async function prepareAttachment(file, local = false) {
   const useCloud = !local && storageConfigured;
   validateFile(file, useCloud ? 5 * 1024 * 1024 : 250 * 1024);
   let url;
+  // The unsigned preset is public client configuration; no API secret is sent.
   if (useCloud) {
     const body = new FormData();
     body.append("file", file);
@@ -72,6 +74,7 @@ export async function prepareAttachment(file, local = false) {
   };
 }
 
+// Download a blob to retain the filename and keep the user inside the app.
 export async function downloadAttachment(file) {
   const safeUrl = safeAttachmentUrl(file.url);
   if (!safeUrl) throw new Error("This file link is not supported.");

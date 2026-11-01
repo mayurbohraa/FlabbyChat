@@ -175,6 +175,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   settingsRef.current = preferences.settings || {};
   const notified = useRef(new Set()),
     openedAt = useRef(Date.now());
+  // Drafts are keyed by conversation so navigation cannot mix text or uploads.
   const drafts = useRef({});
   const bottom = useRef(),
     messageInput = useRef(),
@@ -186,6 +187,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     const input = messageInput.current;
     if (!input) return;
     const resize = () => {
+      // Measure natural content height before applying the multiline cap.
       input.style.height = "auto";
       input.style.height =
         Math.min(88, Math.max(30, input.scrollHeight)) + "px";
@@ -463,6 +465,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     if (busy || (!text.trim() && !attachment)) return;
     setBusy(true);
     setError("");
+    // Capture the destination before awaiting a send that may outlast navigation.
     const currentSelection = selected.id;
     const message = {
       id: uid(),
@@ -512,6 +515,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     setError("");
     try {
       setBusy(true);
+      // Upload completion must update the originating draft, not the visible chat.
       const fileSelection = selectionRef.current;
       const result = await prepareAttachment(file, demo);
       drafts.current[fileSelection] = {
@@ -615,6 +619,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       });
     else await cloud.saveProfile(profile);
   }
+  // Photo changes persist separately from the name/bio form submission.
   async function saveUserPhoto(photoURL) {
     if (demo)
       await updateDemo((next) => {

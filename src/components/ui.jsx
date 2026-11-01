@@ -18,6 +18,7 @@ export function Dialog({ title, onClose, children, className = "" }) {
       className={"form-dialog wide-dialog " + className}
       aria-labelledby={titleId}
       onCancel={(event) => {
+        // Let the caller reject dismissal while an operation is still saving.
         event.preventDefault();
         onClose();
       }}

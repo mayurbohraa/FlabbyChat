@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+// Bundle the worker with the app rather than relying on an external CDN.
 GlobalWorkerOptions.workerSrc = workerUrl;
 export default function PdfViewer({ data, name }) {
   const [document, setDocument] = useState(null);
@@ -18,6 +19,7 @@ export default function PdfViewer({ data, name }) {
     setDocument(null);
     setPage(1);
     const task = getDocument({
+      // PDF.js can transfer the buffer to its worker; preserve the caller's bytes.
       data: data.slice(),
       enableXfa: false,
       useSystemFonts: true,
@@ -60,6 +62,7 @@ export default function PdfViewer({ data, name }) {
         const viewport = pdfPage.getViewport({
           scale: Math.min(width / base.width, 1.5) * zoom,
         });
+        // Bound canvas memory on large pages and high-density displays.
         const ratio = Math.min(
           window.devicePixelRatio || 1,
           2,
@@ -89,6 +92,7 @@ export default function PdfViewer({ data, name }) {
     })();
     return () => {
       disposed = true;
+      // A new page/zoom render must not race the previous canvas task.
       task?.cancel();
     };
   }, [document, page, zoom, width]);

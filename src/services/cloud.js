@@ -90,6 +90,7 @@ export async function refreshVerification(user) {
   if (user.emailVerified) await getIdToken(user, true);
   return user;
 }
+// Seed a missing profile without replacing edits saved during earlier sessions.
 export async function ensureProfile(user) {
   if (!user.emailVerified) return;
   await runTransaction(
@@ -101,6 +102,7 @@ export async function ensureProfile(user) {
       },
   );
 }
+// These subscriptions arrive independently; emit their latest combined state.
 export function watchDirectory(callback, onError) {
   let channels = { general },
     users = {},
@@ -204,6 +206,7 @@ function messagePath(channel, userId, recipient) {
   const [a, b] = [userId, recipient].sort();
   return "direct/" + a + "/" + b;
 }
+// Merge private call history into the same feed as conversation messages.
 export function watchMessages(channel, userId, recipient, callback, onError) {
   let messages = {},
     calls = {};
@@ -320,6 +323,7 @@ export function watchUnread(channels, users, userId, callback, onError) {
 }
 // Call signaling is in calls.js. Media travels through WebRTC, not the database.
 export { ref, onValue, set, update, remove };
+// A timed-out SDK write may still sync later; only its UI wait is bounded here.
 async function confirmProfileWrite(write) {
   const user = auth?.currentUser;
   if (!user) throw new Error("Sign in again to save your profile.");
@@ -359,6 +363,7 @@ export function saveProfile(profile) {
     }),
   );
 }
+// Merge the photo transactionally so another session's name/bio edits survive.
 export function saveProfilePhoto(photoURL) {
   return confirmProfileWrite(async (user) => {
     const result = await runTransaction(
@@ -396,6 +401,7 @@ export const watchPersonal = (userId, callback, error) =>
   );
 export const writePersonal = (userId, collection, id, value) =>
   set(path("libraries/" + userId + "/" + collection + "/" + id), value);
+// Submit both paths together so a rejected move leaves the source intact.
 export function transferLibraryFile(
   userId,
   sourceTeamId,
@@ -413,6 +419,7 @@ export function transferLibraryFile(
     [destination]: file,
   });
 }
+// Membership changes add/remove team listeners and discard inaccessible records.
 export function watchTeams(userId, callback, error) {
   let teams = {},
     stops = {};

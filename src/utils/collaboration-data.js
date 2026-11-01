@@ -8,6 +8,7 @@ export function download(name, text, type = "application/json") {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+// Quote CSV fields and neutralize leading spreadsheet formula characters.
 export function taskCsv(tasks) {
   const quote = (value) =>
     '"' +
