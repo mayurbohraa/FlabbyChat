@@ -2,44 +2,82 @@
 
 A college project for chat, calls and team collaboration.
 
-FlabbyChat brings conversations, project tasks and shared documents into one app. It keeps a simple interface with the original logo, cyan/violet accents, and light and dark themes.
+FlabbyChat combines conversations, project tasks and shared documents in one app, with the original logo, cyan/violet accents, and light and dark themes.
 
-## Features
+## Main features
 
 - Verified accounts, password reset and editable profiles.
 - Channels and private chats with replies, favorites and attachments.
-- Private voice/video calls with calling sounds and call history.
-- Teams, projects, tasks, calendars and discussion boards.
-- Personal and team file libraries with in-app previews and copy/move options.
-- Dashboard charts, search, notifications and appearance settings.
+- Private voice/video calls, notifications and call history.
+- Teams, projects, tasks, calendars, discussion boards and dashboard charts.
+- Personal/team file libraries with previews, downloads and copy/move options.
 
-## Built with
+## Tech stack
 
-React, Vite, Firebase Authentication and Realtime Database, Cloudinary, WebRTC and PDF.js.
+| Purpose                | Technology                                    |
+| ---------------------- | --------------------------------------------- |
+| Frontend               | React, Vite, CSS and Lucide icons             |
+| Accounts and live data | Firebase Authentication and Realtime Database |
+| Files and previews     | Cloudinary and PDF.js                         |
+| Voice/video calls      | WebRTC                                        |
+| Testing                | Vitest and React Testing Library              |
 
-## Run locally
+## Local setup
 
-Use Node.js 24 and npm.
-
-1. Copy [.env.example](.env.example) to `.env.local` and add your Firebase and Cloudinary configuration.
-2. Enable Firebase Email/Password authentication and publish [database.rules.json](database.rules.json).
-3. Configure a Cloudinary unsigned upload preset for supported images and PDFs, with PDF delivery enabled.
+Install **Node.js 24**, npm and Git, then clone the project:
 
 ```sh
+git clone https://github.com/mayurbohraa/FlabbyChat.git
+cd FlabbyChat
 npm ci
+```
+
+Copy [.env.example](.env.example) to `.env.local` in the project root. Fill in these values after completing the service setup below:
+
+```env
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_DATABASE_URL=your_realtime_database_url
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_APP_ID=your_web_app_id
+
+VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
+VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_preset
+```
+
+Use your Firebase Web app configuration, not admin credentials. Keep Cloudinary API secrets out of frontend variables. `.env.local` is ignored by Git.
+
+## Firebase setup
+
+1. Create or select a Firebase project and [register a Web app](https://firebase.google.com/docs/web/setup).
+2. Enable [Email/Password](https://firebase.google.com/docs/auth/web/password-auth) under Authentication's sign-in methods.
+3. Create a [Realtime Database](https://firebase.google.com/docs/database/web/start). Copy its exact URL into `VITE_FIREBASE_DATABASE_URL`.
+4. In Realtime Database > Rules, replace the rules with [database.rules.json](database.rules.json) and publish them.
+5. Copy the Web app's `apiKey`, `authDomain`, `projectId` and `appId` into their matching environment variables. Add `localhost` to Authentication's authorized domains if it is missing; add your hostname when deploying.
+
+## Cloudinary setup
+
+1. Create or select a Cloudinary account and copy its **Cloud name** into `VITE_CLOUDINARY_CLOUD_NAME`.
+2. In Console Settings > Upload > Upload Presets, create an [unsigned upload preset](https://cloudinary.com/documentation/upload_presets). Save its name in `VITE_CLOUDINARY_UPLOAD_PRESET`.
+3. Set the preset's allowed formats to `jpg,jpeg,png,webp,gif,pdf`.
+4. In Console Settings > Security, enable **Allow delivery of PDF and ZIP files** for [PDF delivery](https://cloudinary.com/documentation/pdf_optimization). The app accepts PDFs and supported images, with a 5 MB upload limit.
+
+No upload server or S3 bucket is required for this setup. Cloudinary delivery links are accessible to anyone who has the URL.
+
+## Run the app
+
+```sh
 npm start
 ```
 
-Open the local URL printed in the terminal. Demo mode is available without cloud setup.
+Open the URL printed by Vite, usually `http://127.0.0.1:5173`. Restart the server after changing `.env.local`. For real accounts, sign up and verify your email before entering the app. Demo mode is available without cloud configuration.
+
+Calls require HTTPS or localhost and microphone/camera permission.
 
 ## Other commands
 
-```sh
-npm test
-npm run build
-npm run preview
-```
-
-Calls need HTTPS or localhost and microphone/camera permission. Cloudinary file links can be opened by anyone who has the URL; use ordinary project files rather than confidential documents.
-
-[GitHub repository](https://github.com/mayurbohraa/FlabbyChat)
+| Command           | Purpose                                 |
+| ----------------- | --------------------------------------- |
+| `npm test`        | Run automated tests                     |
+| `npm run build`   | Create the production build in `build/` |
+| `npm run preview` | Preview the production build locally    |
