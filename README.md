@@ -81,3 +81,9 @@ Calls require HTTPS or localhost and microphone/camera permission.
 | `npm test`        | Run automated tests                     |
 | `npm run build`   | Create the production build in `build/` |
 | `npm run preview` | Preview the production build locally    |
+
+## Deploy on Vercel
+
+Import this repository as a Vite project. The included [vercel.json](vercel.json) sets the build command to `npm run build` and the output directory to `build`.
+
+Add the seven `VITE_` variables from `.env.example` to the Vercel project's environment variables before deploying; your local `.env.local` is not uploaded. Add the deployed hostname to Firebase Authentication's authorized domains. Redeploy after changing environment values.
