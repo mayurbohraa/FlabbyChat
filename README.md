@@ -6,7 +6,7 @@ A college collaboration app for conversations, calls and project work.
 
 FlabbyChat brings group chat, private messages, tasks and shared documents into one React application. Firebase handles verified accounts and real-time data, Cloudinary stores images and PDFs, and WebRTC supports private calls. The original logo is retained, with its cyan/violet colors used in light and near-black dark themes.
 
-Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections, subtle surfaces and spacing inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. The name, status, message search and call actions share a compact header, and a smaller composer leaves more space for messages. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu, search and account buttons; search expands below it.
+Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections, subtle surfaces and spacing inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. The name, status, message search and call actions share a compact header, and a smaller, auto-growing composer leaves more space for messages. Date labels and call records stay compact; keyboard and upload hints do not take a separate footer row. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu, search and account buttons; search expands below it.
 
 ## Features
 
@@ -19,7 +19,7 @@ Dashboard opens after login. The approved layout separates the sidebar, header a
 - Teams with owner-managed membership, pause/restore access, ownership transfer and separate projects.
 - Assigned tasks with deadlines, priorities, status, filters and CSV export.
 - Day, week, month and year calendar views, event details and discussion boards with replies.
-- Dashboard task-progress chart with completion percentage, assigned tasks, upcoming events, a small calendar and team members.
+- Dashboard task-progress ring, per-team completed/total task bars, assigned tasks, upcoming events, a small calendar and team members.
 - Personal/team file libraries with compact folder rows, search, in-app previews, downloads, sharing and copy/move actions.
 - Images and PDFs open inside the app in a popup. PDF.js provides page navigation and zoom without a browser PDF plugin or external viewer.
 - Notification dropdown with unread filtering and read actions; optional browser notifications.
@@ -67,6 +67,10 @@ The app checks a 5 MB file limit. Restrict allowed formats in the Cloudinary pre
 
 Without Cloudinary, small images can use the database fallback. Demo files are limited to 250 KB. Provider and browser quotas still apply.
 
+## Profile photos
+
+Choose a photo and wait for **Profile photo saved** before reloading. Photo uploads and removals save automatically to your account; **Save profile** applies name and bio edits. A saved photo is loaded from the user directory and displayed throughout the app, including after reload. If saving fails, the previous saved photo stays in place and an error appears beside the photo controls.
+
 ## Projects and files
 
 Create a team, add registered users and create/select a project. Tasks, calendar events and discussion posts belong to the selected project. Team files are shared with that team's members; personal files belong to your own library. Sharing a file opens a conversation selector and attaches it as a draft. Press Send to publish it to that chat.
@@ -83,7 +87,7 @@ npm run build
 npm run preview
 ```
 
-Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest full suite passed 86 tests across 15 files. A subsequent profile-save regression run passed 37 tests covering profile persistence, timeouts, retries and related account/team workflows. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
+Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest full suite passed 95 tests across 16 files, including automatic photo save/removal, reload persistence, delayed profile loading, chart values and existing account/team workflows. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
 
 Production output goes to `build/`. Firebase hosting configuration and database rules are included. After reviewing the rules and checking cloud workflows, deployment can be run explicitly with Firebase CLI:
 

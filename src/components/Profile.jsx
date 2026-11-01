@@ -1,10 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { UserRound, LockKeyhole, Camera } from "lucide-react";
 import * as cloud from "../services/cloud.js";
 import Avatar from "./Avatar.jsx";
 import { prepareAttachment } from "../services/storage.js";
 import { friendlyError } from "../utils/chat-data.js";
-export default function Profile({ user, demo, onSave, onNotice }) {
+export default function Profile({ user, demo, onSave, onPhotoSave, onNotice }) {
   const photoInput = useRef(null);
   const [section, setSection] = useState("Details");
   const [errorField, setErrorField] = useState("");
@@ -12,11 +12,31 @@ export default function Profile({ user, demo, onSave, onNotice }) {
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [uploading, setUploading] = useState(false),
+    [savingPhoto, setSavingPhoto] = useState(false),
     [passwords, setPasswords] = useState({
       current: "",
       password: "",
       confirm: "",
     });
+  useEffect(() => setPhoto(user.photoURL || ""), [user.photoURL]);
+  async function removePhoto() {
+    if (busy) return;
+    setBusy(true);
+    setSavingPhoto(true);
+    setError("");
+    setErrorField("");
+    try {
+      await onPhotoSave("");
+      setPhoto("");
+      onNotice("Profile photo removed.");
+    } catch (err) {
+      setErrorField("photo");
+      setError(friendlyError(err));
+    } finally {
+      setBusy(false);
+      setSavingPhoto(false);
+    }
+  }
   async function save(e) {
     e.preventDefault();
     if (busy) return;
@@ -53,12 +73,17 @@ export default function Profile({ user, demo, onSave, onNotice }) {
       if (!file.type.startsWith("image/"))
         throw new Error("Choose an image for your profile photo.");
       const result = await prepareAttachment(file, demo);
+      setUploading(false);
+      setSavingPhoto(true);
+      await onPhotoSave(result.url);
       setPhoto(result.url);
+      onNotice("Profile photo saved.");
     } catch (err) {
       setErrorField("photo");
       setError(friendlyError(err));
     } finally {
       setUploading(false);
+      setSavingPhoto(false);
       setBusy(false);
     }
   }
@@ -151,7 +176,9 @@ export default function Profile({ user, demo, onSave, onNotice }) {
           <div className="profile-photo-row">
             <div className="setting-copy">
               <strong>Profile photo</strong>
-              <small>JPG, PNG, WebP or GIF.</small>
+              <small>
+                JPG, PNG, WebP or GIF. Photo changes save automatically.
+              </small>
             </div>
             <div className="control-actions">
               <button
@@ -161,14 +188,18 @@ export default function Profile({ user, demo, onSave, onNotice }) {
                 onClick={() => photoInput.current.click()}
               >
                 <Camera size={16} />
-                {uploading ? "Uploading…" : "Choose photo"}
+                {uploading
+                  ? "Uploading…"
+                  : savingPhoto
+                    ? "Saving photo…"
+                    : "Choose photo"}
               </button>
               {photo && (
                 <button
                   type="button"
                   className="text-button"
                   disabled={busy}
-                  onClick={() => setPhoto("")}
+                  onClick={removePhoto}
                 >
                   Remove photo
                 </button>
@@ -231,9 +262,11 @@ export default function Profile({ user, demo, onSave, onNotice }) {
             <button className="primary" disabled={busy}>
               {uploading
                 ? "Uploading photo…"
-                : busy
-                  ? "Saving…"
-                  : "Save profile"}
+                : savingPhoto
+                  ? "Saving photo…"
+                  : busy
+                    ? "Saving…"
+                    : "Save profile"}
             </button>
           </footer>
         </form>

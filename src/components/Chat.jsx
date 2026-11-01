@@ -177,10 +177,24 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     openedAt = useRef(Date.now());
   const drafts = useRef({});
   const bottom = useRef(),
+    messageInput = useRef(),
     fileInput = useRef(),
     callRef = useRef(null),
     selectionRef = useRef(selected.id);
   const currentUser = { ...user, ...(data.users?.[user.id] || {}) };
+  useEffect(() => {
+    const input = messageInput.current;
+    if (!input) return;
+    const resize = () => {
+      input.style.height = "auto";
+      input.style.height =
+        Math.min(88, Math.max(30, input.scrollHeight)) + "px";
+      input.style.overflowY = input.scrollHeight > 88 ? "auto" : "hidden";
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [text, view, selected.id]);
   const notifications = notificationItems(
     allMessages,
     model.teams,
@@ -600,6 +614,13 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
         next.users[user.id] = { ...next.users[user.id], ...profile };
       });
     else await cloud.saveProfile(profile);
+  }
+  async function saveUserPhoto(photoURL) {
+    if (demo)
+      await updateDemo((next) => {
+        next.users[user.id] = { ...next.users[user.id], photoURL };
+      });
+    else await cloud.saveProfilePhoto(photoURL);
   }
   function navigate(next, item) {
     setSearchOpen(false);
@@ -1105,7 +1126,12 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                   onClick={() => setChatListOpen(false)}
                 />
               )}
-              <main className="chat-main">
+              <main
+                className="chat-main"
+                onMouseDown={(event) => {
+                  if (event.button === 1) event.preventDefault();
+                }}
+              >
                 <header className="chat-header">
                   <button
                     className="icon-button chat-list-toggle"
@@ -1127,12 +1153,11 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                           aria-hidden="true"
                         />
                       )}
-                      {channel.description}
                       {selected.private
                         ? data.presence?.[other.id]?.online
-                          ? " · Online"
-                          : " · Offline"
-                        : ""}
+                          ? "Online"
+                          : "Offline"
+                        : channel.description}
                     </p>
                   </div>
                   <label className="message-search">
@@ -1480,13 +1505,20 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                       type="button"
                       className="icon-button"
                       aria-label="Attach file"
+                      title={
+                        !demo && storageConfigured
+                          ? "Attach a PDF or image (up to 5 MB)"
+                          : "Attach a file (up to 250 KB)"
+                      }
                       onClick={() => fileInput.current.click()}
                       disabled={busy}
                     >
                       <Paperclip size={21} />
                     </button>
                     <textarea
+                      ref={messageInput}
                       aria-label="Message"
+                      aria-describedby="composer-help"
                       disabled={busy}
                       placeholder={`Message ${selected.private ? channel.name : "#" + channel.name}`}
                       rows={1}
@@ -1519,7 +1551,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                       <span>{busy ? "Sending…" : "Send"}</span>
                     </button>
                   </div>
-                  <small>
+                  <small id="composer-help">
                     Enter to send · Shift + Enter for a new line ·{" "}
                     {!demo && storageConfigured
                       ? "PDFs and images up to 5 MB"
@@ -1552,6 +1584,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
               onShare={setShareFile}
               onPreview={setPreviewFile}
               onProfile={saveUserProfile}
+              onPhotoSave={saveUserPhoto}
               onSetting={saveSetting}
               onNotice={setNotice}
             />

@@ -662,7 +662,7 @@ it("resets content scrolling when navigating between workspace sections", async 
   expect(screen.getByRole("main").scrollTop).toBe(0);
 });
 
-it("saves a profile photo across chat, team, dashboard and reload", async () => {
+it("automatically saves an uploaded photo across chat, team, dashboard and reload", async () => {
   start();
   fireEvent.click(screen.getByLabelText("Edit profile"));
   fireEvent.change(screen.getByLabelText("Profile photo"), {
@@ -673,7 +673,7 @@ it("saves a profile photo across chat, team, dashboard and reload", async () => 
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled(),
   );
-  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  expect(screen.getByRole("status")).toHaveTextContent("Profile photo saved.");
   await waitFor(() =>
     expect(loadDemo().users.mayur.photoURL).toMatch(/^data:image\/png;base64,/),
   );
@@ -726,4 +726,68 @@ it("keeps the profile photo and enables retry after an unconfirmed save", async 
   fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
   await waitFor(() => expect(notice).toHaveBeenCalledWith("Profile updated."));
   expect(save).toHaveBeenLastCalledWith(expect.objectContaining({ photoURL }));
+});
+
+it("loads the persisted photo when the user directory arrives after the profile mounts", async () => {
+  const props = {
+    user: demoUser,
+    demo: true,
+    onSave: vi.fn(),
+    onPhotoSave: vi.fn(),
+    onNotice: vi.fn(),
+  };
+  const { rerender } = render(<Profile {...props} />);
+  const photoURL = "https://res.cloudinary.com/demo/image/upload/saved.png";
+  rerender(<Profile {...props} user={{ ...demoUser, photoURL }} />);
+  expect(
+    await screen.findByRole("img", { name: demoUser.name }),
+  ).toHaveAttribute("src", photoURL);
+});
+it("automatically removes a saved profile photo and keeps the removal across reload", async () => {
+  const data = loadDemo();
+  data.users.mayur.photoURL =
+    "https://res.cloudinary.com/demo/image/upload/saved.png";
+  saveDemo(data);
+  start();
+  fireEvent.click(screen.getByLabelText("Edit profile"));
+  fireEvent.click(screen.getByRole("button", { name: "Remove photo" }));
+  await waitFor(() => expect(loadDemo().users.mayur.photoURL).toBe(""));
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Profile photo removed.",
+  );
+  cleanup();
+  start();
+  expect(
+    screen.queryByRole("img", { name: demoUser.name }),
+  ).not.toBeInTheDocument();
+});
+it("retains the previous photo when automatic photo persistence fails", async () => {
+  const photoURL = "https://res.cloudinary.com/demo/image/upload/saved.png";
+  const save = vi.fn(),
+    notice = vi.fn(),
+    savePhoto = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Photo save failed. Try again."));
+  render(
+    <Profile
+      user={{ ...demoUser, photoURL }}
+      demo
+      onSave={save}
+      onPhotoSave={savePhoto}
+      onNotice={notice}
+    />,
+  );
+  fireEvent.change(screen.getByLabelText("Profile photo"), {
+    target: { files: [new File(["image"], "next.png", { type: "image/png" })] },
+  });
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Photo save failed",
+  );
+  expect(screen.getByRole("img", { name: demoUser.name })).toHaveAttribute(
+    "src",
+    photoURL,
+  );
+  expect(screen.getByRole("button", { name: "Choose photo" })).toBeEnabled();
+  expect(notice).not.toHaveBeenCalled();
+  expect(save).not.toHaveBeenCalled();
 });

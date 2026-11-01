@@ -7,6 +7,7 @@ import {
   resetPassword,
   changePassword,
   saveProfile,
+  saveProfilePhoto,
   trackPresence,
   watchDirectory,
   logout,
@@ -264,4 +265,31 @@ it("does not queue profile saves while the browser is offline", async () => {
   } finally {
     online.mockRestore();
   }
+});
+
+it("saves only the uploaded photo while preserving existing name and bio", async () => {
+  const photoURL = "https://res.cloudinary.com/demo/image/upload/new.png";
+  const current = {
+    id: "student",
+    name: "Edited name",
+    bio: "Keep this bio",
+    photoURL: "old",
+  };
+  runTransaction.mockImplementationOnce(async (path, change, options) => {
+    expect(path).toBe("collegeChat/users/student");
+    expect(change(current)).toEqual({ ...current, photoURL });
+    expect(options).toEqual({ applyLocally: false });
+    return { committed: true };
+  });
+  await saveProfilePhoto(photoURL);
+  runTransaction.mockImplementationOnce(async (_path, change) => {
+    expect(change(current).photoURL).toBe("");
+    expect(change(null)).toEqual({
+      id: "student",
+      name: "student",
+      photoURL: "",
+    });
+    return { committed: true };
+  });
+  await saveProfilePhoto("");
 });

@@ -42,6 +42,7 @@ export default function Collaboration({
   onShare,
   onPreview,
   onProfile,
+  onPhotoSave,
   onSetting,
   onNotice,
 }) {
@@ -1070,6 +1071,7 @@ export default function Collaboration({
           user={user}
           demo={demo}
           onSave={onProfile}
+          onPhotoSave={onPhotoSave}
           onNotice={onNotice}
         />
       )}

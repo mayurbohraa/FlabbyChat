@@ -320,7 +320,7 @@ export function watchUnread(channels, users, userId, callback, onError) {
 }
 // Call signaling is in calls.js. Media travels through WebRTC, not the database.
 export { ref, onValue, set, update, remove };
-export async function saveProfile(profile) {
+async function confirmProfileWrite(write) {
   const user = auth?.currentUser;
   if (!user) throw new Error("Sign in again to save your profile.");
   if (navigator.onLine === false)
@@ -331,13 +331,8 @@ export async function saveProfile(profile) {
   // Authentication manages credentials; its profile API must not block this save.
   let timeout;
   try {
-    await Promise.race([
-      update(path("users/" + user.uid), {
-        id: user.uid,
-        name: profile.name,
-        bio: profile.bio || "",
-        photoURL: profile.photoURL || "",
-      }),
+    return await Promise.race([
+      write(user),
       new Promise((_, reject) => {
         timeout = setTimeout(
           () =>
@@ -353,6 +348,32 @@ export async function saveProfile(profile) {
   } finally {
     clearTimeout(timeout);
   }
+}
+export function saveProfile(profile) {
+  return confirmProfileWrite((user) =>
+    update(path("users/" + user.uid), {
+      id: user.uid,
+      name: profile.name,
+      bio: profile.bio || "",
+      photoURL: profile.photoURL || "",
+    }),
+  );
+}
+export function saveProfilePhoto(photoURL) {
+  return confirmProfileWrite(async (user) => {
+    const result = await runTransaction(
+      path("users/" + user.uid),
+      (current) => ({
+        ...current,
+        id: user.uid,
+        name: current?.name || user.displayName || user.email.split("@")[0],
+        photoURL: photoURL || "",
+      }),
+      { applyLocally: false },
+    );
+    if (!result.committed)
+      throw new Error("Your photo was not saved. Please try again.");
+  });
 }
 export async function changePassword(current, password) {
   const user = auth.currentUser;
