@@ -1,5 +1,7 @@
 # FlabbyChat
 
+[Live app](https://flabby-chat.vercel.app/)
+
 Chat, calls and team collaboration for student teams.
 
 FlabbyChat is my college major project, bringing conversations, project tasks and shared documents into one app. I worked on project planning, research, full-stack development, UI design and the original FlabbyChat logo. The interface uses cyan/violet accents with light and dark themes.
