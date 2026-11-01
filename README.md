@@ -1,8 +1,8 @@
 # FlabbyChat
 
-A college project for chat, calls and team collaboration.
+Chat, calls and team collaboration for student teams.
 
-FlabbyChat combines conversations, project tasks and shared documents in one app, with the original logo, cyan/violet accents, and light and dark themes.
+FlabbyChat is my college major project, bringing conversations, project tasks and shared documents into one app. I worked on project planning, research, full-stack development, UI design and the original FlabbyChat logo. The interface uses cyan/violet accents with light and dark themes.
 
 ## Main features
 
