@@ -25,3 +25,26 @@ it("notifies only the receiver about call outcomes and the assignee about tasks"
     detail: "Alice · Missed",
   });
 });
+it("uses the selected clock in upcoming event notifications", () => {
+  const teams = {
+    team: {
+      id: "team",
+      owner: "me",
+      events: {
+        event: {
+          id: "event",
+          title: "Review",
+          date: "2099-11-02",
+          time: "14:30",
+          createdAt: 1,
+        },
+      },
+    },
+  };
+  expect(notificationItems({}, teams, "me", {}, "12")[0].detail).toMatch(
+    /02:30.*pm/i,
+  );
+  expect(notificationItems({}, teams, "me", {}, "24")[0].detail).toContain(
+    "14:30",
+  );
+});

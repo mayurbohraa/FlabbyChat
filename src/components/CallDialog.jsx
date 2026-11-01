@@ -9,7 +9,13 @@ import {
   Camera,
 } from "lucide-react";
 import ringtone from "../assets/audio/ring.mp3";
-export default function CallDialog({ session, onClose, soundEnabled = true }) {
+import Avatar from "./Avatar.jsx";
+export default function CallDialog({
+  session,
+  onClose,
+  soundEnabled = true,
+  photoURL,
+}) {
   const [state, setState] = useState({ phase: "Starting call…" });
   const [muted, setMuted] = useState(false);
   const [camera, setCamera] = useState(true);
@@ -114,7 +120,11 @@ export default function CallDialog({ session, onClose, soundEnabled = true }) {
           />
         )}
         {!session.video && (
-          <div className="call-avatar">{session.other.name[0]}</div>
+          <Avatar
+            className="call-avatar"
+            name={session.other.name}
+            photoURL={photoURL || session.other.photoURL}
+          />
         )}
       </div>
       {ringBlocked && !ended && (

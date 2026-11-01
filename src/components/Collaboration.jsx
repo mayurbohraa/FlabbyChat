@@ -4,15 +4,10 @@ import {
   Download,
   Upload,
   Trash2,
-  Edit2,
   Folder,
   FileText,
   Share2,
-  Check,
-  MessageCircle,
-  FolderOpen,
   Users,
-  ArrowRight,
   Eye,
   Search,
   LayoutGrid,
@@ -21,6 +16,7 @@ import { Dialog, Empty } from "./ui.jsx";
 import { uid, friendlyError } from "../utils/chat-data.js";
 import { prepareAttachment, downloadAttachment } from "../services/storage.js";
 import { download, taskCsv } from "../utils/collaboration-data.js";
+import Avatar from "./Avatar.jsx";
 import Profile from "./Profile.jsx";
 import SettingsPanel from "./SettingsPanel.jsx";
 import ActionMenu from "./ActionMenu.jsx";
@@ -28,6 +24,7 @@ import FileTransferDialog from "./FileTransferDialog.jsx";
 import TaskBoard from "./TaskBoard.jsx";
 import CalendarPanel from "./CalendarPanel.jsx";
 import Dashboard from "./Dashboard.jsx";
+import { formatTime } from "../utils/time.js";
 const localDate = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -42,12 +39,10 @@ export default function Collaboration({
   context,
   setContext,
   onNavigate,
-  onMenu,
   onShare,
   onPreview,
   onProfile,
   onSetting,
-  notifications,
   onNotice,
 }) {
   const [transfer, setTransfer] = useState(null);
@@ -58,8 +53,7 @@ export default function Collaboration({
     [search, setSearch] = useState(""),
     [scope, setScope] = useState("personal"),
     [folder, setFolder] = useState(""),
-    [taskFilter, setTaskFilter] = useState("All"),
-    [month, setMonth] = useState(localDate().slice(0, 7));
+    [taskFilter, setTaskFilter] = useState("All");
   useEffect(() => setSearch(""), [view]);
   useEffect(() => {
     if (context.calendarDate) setCalendarDate(context.calendarDate);
@@ -272,45 +266,65 @@ export default function Collaboration({
       false,
     );
   }
-  async function transferFile(file, operation, destination) {
-    if (destination && !library.folders?.[destination])
+  async function transferFile(
+    file,
+    operation,
+    folderId,
+    targetTeamId = teamScope ? team.id : null,
+  ) {
+    const sourceTeamId = teamScope ? team.id : null;
+    const target = targetTeamId ? model.teams[targetTeamId] : model.library;
+    if (!target)
+      throw new Error(
+        "That library is no longer available. Choose another library.",
+      );
+    if (folderId && !target.folders?.[folderId])
       throw new Error("That folder no longer exists. Choose another folder.");
     if (!library.files?.[file.id])
       throw new Error("This file is no longer in the library.");
-    if (operation === "move")
-      await model.write(teamScope ? team.id : null, "files", file.id, {
-        ...file,
-        folderId: destination,
-      });
-    else {
-      const dot = file.name.lastIndexOf("."),
-        base = dot > 0 ? file.name.slice(0, dot) : file.name,
-        ext = dot > 0 ? file.name.slice(dot) : "";
-      let count = 1,
-        name;
+    const crossLibrary = sourceTeamId !== targetTeamId;
+    let name = file.name;
+    if (operation === "copy") {
+      const dot = name.lastIndexOf("."),
+        base = dot > 0 ? name.slice(0, dot) : name,
+        ext = dot > 0 ? name.slice(dot, dot + 30) : "";
+      let count = 1;
       do {
+        const suffix = " (copy" + (count > 1 ? " " + count : "") + ")";
         name =
-          base.slice(0, 250) +
-          " (copy" +
-          (count > 1 ? " " + count : "") +
-          ")" +
+          base.slice(0, Math.max(1, 300 - ext.length - suffix.length)) +
+          suffix +
           ext;
         count++;
       } while (
-        Object.values(library.files || {}).some(
-          (f) => f.name === name && (f.folderId || "") === destination,
+        Object.values(target.files || {}).some(
+          (f) => f.name === name && (f.folderId || "") === folderId,
         )
       );
-      const id = uid();
-      await model.write(teamScope ? team.id : null, "files", id, {
-        ...file,
-        id,
-        name,
-        folderId: destination,
-        createdAt: Date.now(),
-        createdBy: user.id,
-      });
     }
+    const record = {
+      ...file,
+      id: operation === "copy" || crossLibrary ? uid() : file.id,
+      name,
+      folderId,
+      ...(operation === "copy"
+        ? { createdAt: Date.now(), createdBy: user.id }
+        : {}),
+      ...(crossLibrary
+        ? {
+            workspaceId: targetTeamId
+              ? Object.keys(target.workspaces || {})[0] || ""
+              : "",
+          }
+        : {}),
+    };
+    await model.transferFile(
+      sourceTeamId,
+      targetTeamId,
+      file.id,
+      record,
+      operation === "move",
+    );
     onNotice(operation === "move" ? "File moved." : "File copied.");
   }
   async function fileDownload(file) {
@@ -351,6 +365,14 @@ export default function Collaboration({
       member: collection === "members",
     });
   }
+  const displayTimestamp = (value) =>
+    new Date(value).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }) +
+    " · " +
+    formatTime(value, preferences.settings?.timeFormat);
   const activeTopic =
     dialog?.type === "discussion" ? team?.topics?.[dialog.item.id] : null;
   return (
@@ -568,13 +590,11 @@ export default function Collaboration({
                       <tr key={m.id}>
                         <td>
                           <div className="member-cell">
-                            <span className="person-initials">
-                              {(users[m.id]?.name || m.name)
-                                .split(" ")
-                                .map((n) => n[0])
-                                .slice(0, 2)
-                                .join("")}
-                            </span>
+                            <Avatar
+                              className="person-initials"
+                              name={users[m.id]?.name || m.name}
+                              photoURL={users[m.id]?.photoURL}
+                            />
                             <div>
                               <strong>{users[m.id]?.name || m.name}</strong>
                               {m.id === user.id && <small>{user.email}</small>}
@@ -768,7 +788,6 @@ export default function Collaboration({
           filter={taskFilter}
           onFilter={setTaskFilter}
           search={search}
-          onCreate={() => open("task")}
           onEdit={(t) => open("task", t)}
           onRemove={(t) => askRemove("tasks", t)}
           onStatus={(t, status) =>
@@ -813,16 +832,14 @@ export default function Collaboration({
               .map((t) => (
                 <article className="board-post" key={t.id}>
                   <div className="post-author">
-                    <span className="person-initials">
-                      {(t.name || "?")
-                        .split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </span>
+                    <Avatar
+                      className="person-initials"
+                      name={users[t.createdBy]?.name || t.name}
+                      photoURL={users[t.createdBy]?.photoURL}
+                    />
                     <div>
                       <strong>{t.name}</strong>
-                      <small>{new Date(t.createdAt).toLocaleString()}</small>
+                      <small>{displayTimestamp(t.createdAt)}</small>
                     </div>
                   </div>
                   <button
@@ -832,7 +849,7 @@ export default function Collaboration({
                     <h3>{t.title}</h3>
                     <p>{t.body.slice(0, 150)}</p>
                     <small>
-                      {t.name} · {new Date(t.createdAt).toLocaleString()} ·{" "}
+                      {t.name} · {displayTimestamp(t.createdAt)} ·{" "}
                       {Object.keys(t.replies || {}).length} replies
                     </small>
                   </button>
@@ -965,6 +982,7 @@ export default function Collaboration({
                     <button
                       className="icon-button"
                       aria-label={"Preview " + f.name}
+                      title="Preview"
                       onClick={() => onPreview(f)}
                     >
                       <Eye size={16} />
@@ -972,6 +990,7 @@ export default function Collaboration({
                     <button
                       className="icon-button"
                       aria-label={"Download " + f.name}
+                      title="Download"
                       onClick={() => fileDownload(f)}
                     >
                       <Download size={16} />
@@ -979,6 +998,7 @@ export default function Collaboration({
                     <button
                       className="icon-button"
                       aria-label={"Share " + f.name}
+                      title="Share in chat"
                       onClick={() => onShare(f)}
                     >
                       <Share2 size={16} />
@@ -1063,10 +1083,28 @@ export default function Collaboration({
       {transfer && (
         <FileTransferDialog
           {...transfer}
-          folders={library.folders}
-          libraryName={teamScope ? team.name : "My files"}
+          sourceLibrary={teamScope ? team.id : "personal"}
+          libraries={[
+            {
+              id: "personal",
+              name: "My files",
+              folders: model.library.folders,
+            },
+            ...Object.values(model.teams).map((item) => ({
+              id: item.id,
+              name: "Team files · " + item.name,
+              folders: item.folders,
+            })),
+          ]}
           onClose={() => setTransfer(null)}
-          onTransfer={transferFile}
+          onTransfer={(file, operation, folderId, destination) =>
+            transferFile(
+              file,
+              operation,
+              folderId,
+              destination === "personal" ? null : destination,
+            )
+          }
         />
       )}
       {dialog && (
@@ -1148,20 +1186,28 @@ export default function Collaboration({
             </>
           ) : dialog.type === "discussion" ? (
             <>
-              <p className="discussion-body">{activeTopic?.body}</p>
-              <small>
-                {activeTopic?.name} ·{" "}
-                {new Date(
-                  activeTopic?.createdAt || Date.now(),
-                ).toLocaleString()}
-              </small>
+              <p className="discussion-body">
+                {activeTopic?.body || "This post is no longer available."}
+              </p>
+              {activeTopic && (
+                <div className="discussion-meta">
+                  <strong>{activeTopic.name}</strong>
+                  <time
+                    dateTime={new Date(activeTopic.createdAt).toISOString()}
+                  >
+                    {displayTimestamp(activeTopic.createdAt)}
+                  </time>
+                </div>
+              )}
               {Object.values(activeTopic?.replies || {})
                 .sort((a, b) => a.createdAt - b.createdAt)
                 .map((r) => (
                   <article className="discussion-reply" key={r.id}>
                     <strong>{r.name}</strong>
                     <p>{r.text}</p>
-                    <small>{new Date(r.createdAt).toLocaleString()}</small>
+                    <time dateTime={new Date(r.createdAt).toISOString()}>
+                      {displayTimestamp(r.createdAt)}
+                    </time>
                     {r.createdBy === user.id && (
                       <button
                         className="icon-button"
@@ -1185,12 +1231,15 @@ export default function Collaboration({
                     )}
                   </article>
                 ))}
-              <button
-                className="primary"
-                onClick={() => open("reply", activeTopic)}
-              >
-                Write a reply
-              </button>
+              <div className="dialog-actions">
+                <button
+                  className="primary"
+                  disabled={!activeTopic || busy}
+                  onClick={() => open("reply", activeTopic)}
+                >
+                  Write a reply
+                </button>
+              </div>
             </>
           ) : (
             <form onSubmit={save}>

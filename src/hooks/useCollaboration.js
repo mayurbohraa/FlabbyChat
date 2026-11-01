@@ -122,6 +122,31 @@ export default function useCollaboration(user, demo) {
         });
       else await cloud.addTeamMember(teamId, member);
     },
+    async transferFile(sourceTeamId, destinationTeamId, sourceId, file, move) {
+      if (demo)
+        await local((data) => {
+          const source = sourceTeamId ? data.teams[sourceTeamId] : data.library;
+          const destination = destinationTeamId
+            ? data.teams[destinationTeamId]
+            : data.library;
+          if (!source?.files?.[sourceId] || !destination)
+            throw new Error(
+              "This library is no longer available. Refresh and try again.",
+            );
+          destination.files = { ...destination.files, [file.id]: file };
+          if (move && (source !== destination || sourceId !== file.id))
+            delete source.files[sourceId];
+        });
+      else
+        await cloud.transferLibraryFile(
+          user.id,
+          sourceTeamId,
+          destinationTeamId,
+          sourceId,
+          file,
+          move,
+        );
+    },
     async transferOwnership(teamId, id) {
       if (demo)
         await local((d) => {

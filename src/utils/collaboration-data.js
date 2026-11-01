@@ -1,4 +1,5 @@
-import { callSummary } from "./calendar.js";
+import { callSummary, dateKey } from "./calendar.js";
+import { formatTime } from "./time.js";
 export function download(name, text, type = "application/json") {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const link = document.createElement("a");
@@ -21,7 +22,13 @@ export function taskCsv(tasks) {
     .map((row) => row.map(quote).join(","))
     .join("\r\n");
 }
-export function notificationItems(messages, teams, userId, lastRead = {}) {
+export function notificationItems(
+  messages,
+  teams,
+  userId,
+  lastRead = {},
+  timeFormat,
+) {
   const items = [];
   for (const [chat, list] of Object.entries(messages || {}))
     for (const m of Object.values(list || {})) {
@@ -50,7 +57,7 @@ export function notificationItems(messages, teams, userId, lastRead = {}) {
           recipient: m.recipient ? m.userId : undefined,
         });
     }
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = dateKey(new Date());
   for (const team of Object.values(teams || {})) {
     const context = { teamId: team.id };
     if (team.owner !== userId)
@@ -78,7 +85,12 @@ export function notificationItems(messages, teams, userId, lastRead = {}) {
         items.push({
           id: "event_" + event.id,
           title: "Upcoming event",
-          detail: event.title + " · " + event.date + " " + event.time,
+          detail:
+            event.title +
+            " · " +
+            event.date +
+            " " +
+            formatTime(event.time, timeFormat),
           createdAt: event.createdAt,
           ...context,
           workspaceId: event.workspaceId,

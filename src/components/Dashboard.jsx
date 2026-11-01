@@ -1,4 +1,5 @@
 import { formatTime } from "../utils/time.js";
+import Avatar from "./Avatar.jsx";
 import React, { useState } from "react";
 import { MiniCalendar } from "./CalendarPanel.jsx";
 import { dateKey } from "../utils/calendar.js";
@@ -210,20 +211,18 @@ export default function Dashboard({
                   .slice(0, 6)
                   .map((m) => (
                     <div className="team-person" key={m.id}>
-                      <span className="person-initials">
-                        {(users[m.id]?.name || m.name || "?")
-                          .split(" ")
-                          .map((s) => s[0])
-                          .slice(0, 2)
-                          .join("")}
-                      </span>
+                      <Avatar
+                        className="person-initials"
+                        name={users[m.id]?.name || m.name}
+                        photoURL={users[m.id]?.photoURL}
+                      />
                       <div>
                         <strong>{users[m.id]?.name || m.name}</strong>
                         <small>
                           {m.id === team.owner
                             ? "Owner"
                             : m.status === "on hold"
-                              ? "On hold"
+                              ? "Access paused"
                               : "Member"}
                         </small>
                       </div>

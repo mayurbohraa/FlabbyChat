@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import Chat from "../components/Chat.jsx";
+import FileTransferDialog from "../components/FileTransferDialog.jsx";
 import Profile from "../components/Profile.jsx";
 import NotificationDropdown from "../components/NotificationDropdown.jsx";
 import * as cloud from "../services/cloud.js";
@@ -571,4 +572,128 @@ it("persists the chat layout preference and changes the message presentation", a
     .closest("article")
     .querySelector("time");
   expect(messageTime).toHaveTextContent(/^\d{2}:\d{2}$/);
+});
+
+it("moves a file from My files into a team library and back without losing its URL", async () => {
+  const data = loadDemo();
+  data.library = {
+    folders: {},
+    files: {
+      original: {
+        id: "original",
+        name: "report.pdf",
+        kind: "pdf",
+        url: "data:application/pdf;base64,JVBERi0xLjQ=",
+        size: 9,
+        createdAt: 1,
+        createdBy: "mayur",
+        folderId: "",
+      },
+    },
+  };
+  saveDemo(data);
+  start();
+  await team();
+  const teamId = Object.keys(loadDemo().teams)[0];
+  nav("Storage");
+  fireEvent.click(screen.getByLabelText("File options for report.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+  fireEvent.change(screen.getByLabelText("Destination library"), {
+    target: { value: teamId },
+  });
+  expect(screen.getByRole("button", { name: "Move here" })).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "Move here" }));
+  await waitFor(() =>
+    expect(Object.keys(loadDemo().library.files)).toHaveLength(0),
+  );
+  let state = loadDemo();
+  expect(Object.values(state.teams[teamId].files)[0].url).toBe(
+    data.library.files.original.url,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Team files" }));
+  fireEvent.click(screen.getByLabelText("File options for report.pdf"));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+  fireEvent.change(screen.getByLabelText("Destination library"), {
+    target: { value: "personal" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Move here" }));
+  await waitFor(() =>
+    expect(Object.keys(loadDemo().teams[teamId].files)).toHaveLength(0),
+  );
+  expect(Object.values(loadDemo().library.files)[0].url).toBe(
+    data.library.files.original.url,
+  );
+});
+it("keeps a transfer dialog open while its save is pending, including Escape", async () => {
+  let finish;
+  const close = vi.fn();
+  const transfer = vi.fn(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  render(
+    <FileTransferDialog
+      file={{ id: "file", name: "report.pdf" }}
+      operation="copy"
+      sourceLibrary="personal"
+      libraries={[{ id: "personal", name: "My files", folders: {} }]}
+      onClose={close}
+      onTransfer={transfer}
+    />,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Copy here" }));
+  const cancel = new Event("cancel", { bubbles: false, cancelable: true });
+  fireEvent(screen.getByRole("dialog"), cancel);
+  expect(cancel.defaultPrevented).toBe(true);
+  expect(close).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Destination library")).toBeDisabled();
+  finish();
+  await waitFor(() => expect(close).toHaveBeenCalledOnce());
+});
+it("resets content scrolling when navigating between workspace sections", async () => {
+  start();
+  await team();
+  nav("Calendar");
+  const main = screen.getByRole("main");
+  main.scrollTop = 400;
+  nav("Settings");
+  expect(screen.getByRole("main").scrollTop).toBe(0);
+});
+
+it("saves a profile photo across chat, team, dashboard and reload", async () => {
+  start();
+  fireEvent.click(screen.getByLabelText("Edit profile"));
+  fireEvent.change(screen.getByLabelText("Profile photo"), {
+    target: {
+      files: [new File(["image"], "avatar.png", { type: "image/png" })],
+    },
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Save profile" })).toBeEnabled(),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+  await waitFor(() =>
+    expect(loadDemo().users.mayur.photoURL).toMatch(/^data:image\/png;base64,/),
+  );
+  const url = loadDemo().users.mayur.photoURL;
+  await team();
+  expect(screen.getAllByRole("img", { name: "Mayur Bohra" })).toHaveLength(3);
+  nav("Chat");
+  fireEvent.change(screen.getByLabelText("Message"), {
+    target: { value: "Photo saved" },
+  });
+  fireEvent.click(screen.getByLabelText("Send message"));
+  const message = await screen.findByText("Photo saved");
+  expect(
+    within(message.closest("article")).getByRole("img", {
+      name: "Mayur Bohra",
+    }),
+  ).toHaveAttribute("src", url);
+  cleanup();
+  start();
+  expect(screen.getAllByRole("img", { name: "Mayur Bohra" })).toHaveLength(3);
+  for (const image of screen.getAllByRole("img", { name: "Mayur Bohra" }))
+    expect(image).toHaveAttribute("src", url);
 });

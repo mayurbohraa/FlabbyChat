@@ -81,7 +81,10 @@ export default function ActionMenu({
         title={label}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => {if(!open)onOpen?.();setOpen(!open);}}
+        onClick={() => {
+          if (!open) onOpen?.();
+          setOpen(!open);
+        }}
       >
         {children || <MoreHorizontal size={18} />}
       </button>

@@ -6,12 +6,12 @@ A college collaboration app for conversations, calls and project work.
 
 FlabbyChat brings group chat, private messages, tasks and shared documents into one React application. Firebase handles verified accounts and real-time data, Cloudinary stores images and PDFs, and WebRTC supports private calls. The original logo is retained, with its cyan/violet colors used in light and near-black dark themes.
 
-Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections, subtle surfaces and spacing inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu, search and account buttons; search expands below it.
+Dashboard opens after login. The approved layout separates the sidebar, header and content into panels, with flat sections, subtle surfaces and spacing inside. The main sidebar opens each section directly; team and project choices stay inside their pages. Chat has its own conversation list beside the chat window. The name, status, message search and call actions share a compact header, and a smaller composer leaves more space for messages. A shared header provides search and a notification dropdown with All/Unread filters. On mobile, the header contains menu, search and account buttons; search expands below it.
 
 ## Features
 
 - Email/password login and signup, email verification, resend and password reset.
-- Profile name, photo and bio editing, verified email display and password changes with current-password confirmation.
+- Profile name, photo and bio editing, verified email display and password changes with current-password confirmation. Saved photos appear across navigation, conversations, teams, dashboard members, board authors and calls.
 - Channels and private chats with search, image/PDF attachments, conversation drafts, timestamps, replies and message actions.
 - Favorites for channels and private chats.
 - Green/red presence dots show visible, connected sessions. Hidden tabs, logout and disconnects go offline; multiple tabs are tracked independently.
@@ -71,7 +71,7 @@ Without Cloudinary, small images can use the database fallback. Demo files are l
 
 Create a team, add registered users and create/select a project. Tasks, calendar events and discussion posts belong to the selected project. Team files are shared with that team's members; personal files belong to your own library. Sharing a file opens a conversation selector and attaches it as a draft. Press Send to publish it to that chat.
 
-File tiles keep preview, download and share visible, while the three-dot menu contains Make a copy, Copy to, Move to and Remove file. Copy/move destinations open in an in-app folder dialog.
+File tiles keep preview, download and share visible, while the three-dot menu contains Make a copy, Copy to, Move to and Remove file. Copy/move destinations open in an in-app dialog with My files, accessible team libraries and their folders. Moves between libraries use one atomic database update; existing chat attachments retain their URLs.
 
 Documents stay in their selected personal or team folder and open inside the app. Unsent chat drafts last while the app is open and are not restored after a reload.
 
@@ -83,7 +83,7 @@ npm run build
 npm run preview
 ```
 
-Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest local run passed 79 tests across 15 files. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
+Tests in `src/tests/` cover accounts, conversation isolation, uploads, team/project workflows, calls, mobile search, notification popups, contextual feedback and PDF rendering controls. The latest local run passed 86 tests across 15 files. External services are mocked in automated tests. Real email delivery, database permissions and device calls should also be checked with separate verified accounts.
 
 Production output goes to `build/`. Firebase hosting configuration and database rules are included. After reviewing the rules and checking cloud workflows, deployment can be run explicitly with Firebase CLI:
 
@@ -109,7 +109,7 @@ Deploy the current database rules and frontend, configure your production domain
 
 ## Verification status
 
-The production build and automated tests pass locally. The latest desktop review verified that calendar content scrolls without moving the header/sidebar. Section changes now reset the content scroll position. Browser review covered desktop/mobile navigation, Settings, Profile, notification dropdowns, file folders, a PDF preview, zoom, closing the viewer and downloading a local test file. Configuration checks confirmed the required Firebase and Cloudinary variables are present; they do not verify the provider-console settings or published rules. The dependency audit reported zero vulnerabilities after updating the test runner and the pinned Firebase transport dependency.
+The production build and automated tests pass locally. The latest desktop review verified that calendar content scrolls without moving the header/sidebar. Section changes reset the content scroll position. The outer document stays fixed, with a single content scrollbar for calendar pages. Discussion popups separate author/time metadata from their reply footer, and dialogs respect busy state when Escape is pressed. Browser review covered desktop/mobile navigation, Settings, Profile, notification dropdowns, file folders, a PDF preview, zoom, closing the viewer and downloading a local test file. Configuration checks confirmed the required Firebase and Cloudinary variables are present; they do not verify the provider-console settings or published rules. The dependency audit reported zero vulnerabilities after updating the test runner and the pinned Firebase transport dependency.
 
 ## Project structure
 

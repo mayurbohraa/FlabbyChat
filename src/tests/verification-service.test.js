@@ -6,6 +6,7 @@ import {
   ensureProfile,
   resetPassword,
   changePassword,
+  saveProfile,
   trackPresence,
   watchDirectory,
   logout,
@@ -18,6 +19,7 @@ import {
   sendPasswordResetEmail,
   reauthenticateWithCredential,
   updatePassword,
+  updateProfile,
   signOut,
 } from "firebase/auth";
 import {
@@ -25,6 +27,7 @@ import {
   runTransaction,
   onValue,
   onDisconnect,
+  update,
   remove,
 } from "firebase/database";
 vi.hoisted(() => {
@@ -215,4 +218,18 @@ it("does not publish a stopped session after disconnect cleanup finishes", async
   arm();
   await pending;
   expect(set).not.toHaveBeenCalled();
+});
+
+it("persists a saved profile photo in Authentication and the shared user directory", async () => {
+  const photoURL = "https://res.cloudinary.com/demo/image/upload/avatar.png";
+  await saveProfile({ name: "Student", bio: "College project", photoURL });
+  expect(updateProfile).toHaveBeenCalledWith(
+    expect.objectContaining({ uid: "student" }),
+    { displayName: "Student", photoURL },
+  );
+  expect(update).toHaveBeenCalledWith("collegeChat/users/student", {
+    name: "Student",
+    bio: "College project",
+    photoURL,
+  });
 });

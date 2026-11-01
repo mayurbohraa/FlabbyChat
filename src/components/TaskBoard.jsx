@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Download, Edit2, Trash2 } from "lucide-react";
+import { Download, Edit2, Trash2 } from "lucide-react";
 import { dateKey } from "../utils/calendar.js";
 import { Dialog, Empty } from "./ui.jsx";
 const today = () => dateKey(new Date());
@@ -9,7 +9,6 @@ export default function TaskBoard({
   user,
   filter,
   onFilter,
-  onCreate,
   onEdit,
   onRemove,
   onStatus,

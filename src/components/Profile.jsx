@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
 import { UserRound, LockKeyhole, Camera } from "lucide-react";
 import * as cloud from "../services/cloud.js";
-import { prepareAttachment, safeAttachmentUrl } from "../services/storage.js";
+import Avatar from "./Avatar.jsx";
+import { prepareAttachment } from "../services/storage.js";
 import { friendlyError } from "../utils/chat-data.js";
 export default function Profile({ user, demo, onSave, onNotice }) {
   const photoInput = useRef(null);
@@ -96,21 +97,11 @@ export default function Profile({ user, demo, onSave, onNotice }) {
   return (
     <div className="account-layout profile-layout">
       <div className="profile-summary">
-        {safeAttachmentUrl(photo) ? (
-          <img
-            src={safeAttachmentUrl(photo)}
-            alt="Your profile"
-            className="profile-summary-avatar"
-          />
-        ) : (
-          <span className="profile-summary-avatar" aria-hidden="true">
-            {(user.name || "?")
-              .split(" ")
-              .map((part) => part[0])
-              .slice(0, 2)
-              .join("")}
-          </span>
-        )}
+        <Avatar
+          className="profile-summary-avatar"
+          name={user.name}
+          photoURL={photo}
+        />
         <div>
           <strong>{user.name}</strong>
           <p>{user.email}</p>

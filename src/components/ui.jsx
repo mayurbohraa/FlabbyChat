@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useId } from "react";
 import { X } from "lucide-react";
 export function Dialog({ title, onClose, children, className = "" }) {
   const ref = useRef();
+  const titleId = useId();
   useEffect(() => {
     const el = ref.current,
       previous = document.activeElement;
@@ -15,11 +16,14 @@ export function Dialog({ title, onClose, children, className = "" }) {
     <dialog
       ref={ref}
       className={"form-dialog wide-dialog " + className}
-      aria-labelledby="dialog-title"
-      onCancel={onClose}
+      aria-labelledby={titleId}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
     >
       <header className="dialog-heading">
-        <h2 id="dialog-title">{title}</h2>
+        <h2 id={titleId}>{title}</h2>
         <button
           className="icon-button"
           aria-label="Close dialog"

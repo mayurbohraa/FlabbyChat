@@ -1,6 +1,6 @@
 import { formatTime } from "../utils/time.js";
 import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { dateKey, fromKey, periodDates, shiftDate } from "../utils/calendar.js";
 import { Dialog } from "./ui.jsx";
 import ActionMenu from "./ActionMenu.jsx";

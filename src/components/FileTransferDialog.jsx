@@ -5,14 +5,16 @@ import { friendlyError } from "../utils/chat-data.js";
 export default function FileTransferDialog({
   file,
   operation,
-  folders,
+  libraries,
+  sourceLibrary,
   onClose,
   onTransfer,
-  libraryName,
 }) {
-  const [folder, setFolder] = useState(file.folderId || ""),
+  const [destination, setDestination] = useState(sourceLibrary),
+    [folder, setFolder] = useState(file.folderId || ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const library = libraries.find((item) => item.id === destination);
   return (
     <Dialog
       title={(operation === "move" ? "Move" : "Copy") + " file"}
@@ -21,7 +23,29 @@ export default function FileTransferDialog({
       }}
     >
       <p className="transfer-file-name">{file.name}</p>
-      <p className="small-note">Choose a destination in {libraryName}.</p>
+      <label>
+        Destination library
+        <select
+          value={destination}
+          disabled={busy}
+          onChange={(event) => {
+            setDestination(event.target.value);
+            setFolder("");
+            setError("");
+          }}
+        >
+          {libraries.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="small-note">
+        {destination === "personal"
+          ? "Choose a folder in My files."
+          : "Members of this team can access files placed here."}
+      </p>
       <div
         className="destination-folders"
         role="radiogroup"
@@ -29,12 +53,13 @@ export default function FileTransferDialog({
       >
         {[
           { id: "", name: "All files (no folder)" },
-          ...Object.values(folders || {}),
+          ...Object.values(library?.folders || {}),
         ].map((f) => (
           <button
             key={f.id}
             role="radio"
             aria-checked={folder === f.id}
+            disabled={busy}
             onClick={() => setFolder(f.id)}
           >
             <Folder size={18} />
@@ -55,13 +80,17 @@ export default function FileTransferDialog({
         <button
           className="primary"
           disabled={
-            busy || (operation === "move" && folder === (file.folderId || ""))
+            busy ||
+            !library ||
+            (operation === "move" &&
+              destination === sourceLibrary &&
+              folder === (file.folderId || ""))
           }
           onClick={async () => {
             setBusy(true);
             setError("");
             try {
-              await onTransfer(file, operation, folder);
+              await onTransfer(file, operation, folder, destination);
               onClose();
             } catch (err) {
               setError(friendlyError(err));

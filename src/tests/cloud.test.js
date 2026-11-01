@@ -1,6 +1,10 @@
 import { it, expect, vi } from "vitest";
-import { sendMessage, watchMessages } from "../services/cloud.js";
-import { set, onValue } from "firebase/database";
+import {
+  sendMessage,
+  watchMessages,
+  transferLibraryFile,
+} from "../services/cloud.js";
+import { set, onValue, update } from "firebase/database";
 vi.mock("firebase/app", () => ({ initializeApp: () => ({}) }));
 vi.mock("firebase/auth", () => ({ getAuth: () => ({}) }));
 vi.mock("firebase/database", () => ({
@@ -71,4 +75,27 @@ it("stores and reads a private attachment only at the participants’ conversati
   expect(onValue.mock.calls.map((call) => call[0])).toContain(
     "collegeChat/callHistory/a/b",
   );
+});
+
+it("moves cross-library metadata in one atomic update and propagates rejected writes", async () => {
+  const file = {
+    id: "new-file",
+    name: "report.pdf",
+    url: "https://res.cloudinary.com/demo/report.pdf",
+  };
+  update.mockResolvedValueOnce();
+  await transferLibraryFile("student", null, "team", "old-file", file, true);
+  expect(update).toHaveBeenLastCalledWith("collegeChat/", {
+    "libraries/student/files/old-file": null,
+    "teams/team/files/new-file": file,
+  });
+  update.mockRejectedValueOnce(new Error("Permission denied"));
+  await expect(
+    transferLibraryFile("student", "team", null, "old-file", file, true),
+  ).rejects.toThrow("Permission denied");
+  update.mockResolvedValueOnce();
+  await transferLibraryFile("student", null, "team", "old-file", file, false);
+  expect(update).toHaveBeenLastCalledWith("collegeChat/", {
+    "teams/team/files/new-file": file,
+  });
 });

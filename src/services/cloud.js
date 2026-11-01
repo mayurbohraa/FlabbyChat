@@ -353,6 +353,23 @@ export const watchPersonal = (userId, callback, error) =>
   );
 export const writePersonal = (userId, collection, id, value) =>
   set(path("libraries/" + userId + "/" + collection + "/" + id), value);
+export function transferLibraryFile(
+  userId,
+  sourceTeamId,
+  destinationTeamId,
+  sourceId,
+  file,
+  move,
+) {
+  const libraryPath = (teamId) =>
+    teamId ? "teams/" + teamId : "libraries/" + userId;
+  const source = libraryPath(sourceTeamId) + "/files/" + sourceId;
+  const destination = libraryPath(destinationTeamId) + "/files/" + file.id;
+  return update(path(""), {
+    ...(move && source !== destination ? { [source]: null } : {}),
+    [destination]: file,
+  });
+}
 export function watchTeams(userId, callback, error) {
   let teams = {},
     stops = {};

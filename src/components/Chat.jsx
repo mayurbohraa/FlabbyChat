@@ -13,8 +13,6 @@ import {
   Video,
   Menu,
   X,
-  Trash2,
-  Download,
   Bell,
   Settings,
   LayoutDashboard,
@@ -35,13 +33,14 @@ import {
 } from "../services/calls.js";
 import CallDialog from "./CallDialog.jsx";
 import FilePreview from "./FilePreview.jsx";
+import Avatar from "./Avatar.jsx";
 import ActionMenu from "./ActionMenu.jsx";
 import { formatTime } from "../utils/time.js";
 import { callSummary } from "../utils/calendar.js";
 import Collaboration from "./Collaboration.jsx";
 import NotificationDropdown from "./NotificationDropdown.jsx";
 import useCollaboration from "../hooks/useCollaboration.js";
-import { notificationItems, download } from "../utils/collaboration-data.js";
+import { notificationItems } from "../utils/collaboration-data.js";
 import { applyTheme, savedTheme } from "../utils/theme.js";
 import { Dialog, useMedia } from "./ui.jsx";
 import logo from "../assets/images/FlabbyChatLogo.png";
@@ -62,30 +61,9 @@ import {
   friendlyError,
   demoStorageKey,
 } from "../utils/chat-data.js";
-function Avatar({ name, photoURL }) {
-  if (safeAttachmentUrl(photoURL))
-    return (
-      <img className="avatar" src={safeAttachmentUrl(photoURL)} alt={name} />
-    );
-  return (
-    <span className="avatar" aria-hidden="true">
-      {(name || "?")
-        .split(" ")
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join("")}
-    </span>
-  );
-}
 function ChannelDialog({ onClose, onCreate }) {
-  const dialog = useRef();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    const element = dialog.current;
-    element.showModal();
-    return () => element.close();
-  }, []);
   async function submit(e) {
     e.preventDefault();
     const fields = Object.fromEntries(new FormData(e.currentTarget));
@@ -109,18 +87,12 @@ function ChannelDialog({ onClose, onCreate }) {
     }
   }
   return (
-    <dialog
-      ref={dialog}
-      className="form-dialog"
-      aria-labelledby="new-channel-title"
-      onCancel={onClose}
+    <Dialog
+      title="Create channel"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
     >
-      <div className="dialog-heading">
-        <h2 id="new-channel-title">Create channel</h2>
-        <button className="icon-button" aria-label="Close" onClick={onClose}>
-          <X size={20} />
-        </button>
-      </div>
       <form onSubmit={submit}>
         <label>
           Channel name
@@ -155,7 +127,7 @@ function ChannelDialog({ onClose, onCreate }) {
           </button>
         </div>
       </form>
-    </dialog>
+    </Dialog>
   );
 }
 export default function Chat({ user, demo, onLogout, initialError = "" }) {
@@ -214,6 +186,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     model.teams,
     user.id,
     preferences.lastRead,
+    preferences.settings?.timeFormat,
   );
   const notificationCount = notifications.filter(
     (n) => !preferences.notificationRead?.[n.id],
@@ -568,16 +541,13 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
     select({ id: value.id, private: false });
   }
   async function removeMessage() {
-    try {
-      if (demo)
-        await updateDemo((next) => {
-          delete next.messages[deleteTarget.id];
-        });
-      else await cloud.deleteMessage(deleteTarget);
-      setDeleteTarget(null);
-    } catch (err) {
-      report(err);
-    }
+    if (demo)
+      await updateDemo((next) => {
+        delete next.messages[deleteTarget.id];
+      });
+    else await cloud.deleteMessage(deleteTarget);
+    setDeleteTarget(null);
+    setNotice("Message deleted.");
   }
   function startCall(video) {
     if (demo) {
@@ -1165,6 +1135,24 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                         : ""}
                     </p>
                   </div>
+                  <label className="message-search">
+                    <Search size={17} />
+                    <input
+                      aria-label="Search messages"
+                      placeholder="Search messages or names"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    {query && (
+                      <button
+                        className="icon-button"
+                        aria-label="Clear search"
+                        onClick={() => setQuery("")}
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </label>
                   <div className="header-actions">
                     {
                       <button
@@ -1221,31 +1209,6 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
                       )}
                   </div>
                 </header>
-                <div className="chat-toolbar">
-                  <label className="message-search">
-                    <Search size={17} />
-                    <input
-                      aria-label="Search messages"
-                      placeholder="Search messages or names"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                    />
-                    {query && (
-                      <button
-                        className="icon-button"
-                        aria-label="Clear search"
-                        onClick={() => setQuery("")}
-                      >
-                        <X size={15} />
-                      </button>
-                    )}
-                  </label>
-                  <span>
-                    {selected.private
-                      ? "Private chat"
-                      : `${Object.keys(data.users || {}).length} users`}
-                  </span>
-                </div>
                 {error && (
                   <div className="error chat-error" role="alert">
                     <span>{error}</span>
@@ -1586,12 +1549,10 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
               context={context}
               setContext={setContext}
               onNavigate={navigate}
-              onMenu={() => setMobile(true)}
               onShare={setShareFile}
               onPreview={setPreviewFile}
               onProfile={saveUserProfile}
               onSetting={saveSetting}
-              notifications={notifications}
               onNotice={setNotice}
             />
           )}
@@ -1688,6 +1649,7 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
       {call && (
         <CallDialog
           session={call}
+          photoURL={data.users?.[call.other.id]?.photoURL}
           soundEnabled={preferences.settings?.callSound !== false}
           onClose={() => {
             callRef.current = null;
@@ -1705,29 +1667,43 @@ export default function Chat({ user, demo, onLogout, initialError = "" }) {
   );
 }
 function DeleteDialog({ onClose, onConfirm }) {
-  const dialog = useRef();
-  useEffect(() => {
-    const el = dialog.current;
-    el.showModal();
-    return () => el.close();
-  }, []);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
   return (
-    <dialog
-      className="form-dialog"
-      ref={dialog}
-      aria-labelledby="delete-title"
-      onCancel={onClose}
+    <Dialog
+      title="Delete your message?"
+      onClose={() => {
+        if (!busy) onClose();
+      }}
     >
-      <h2 id="delete-title">Delete your message?</h2>
       <p>This message will be removed from the conversation.</p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <div className="dialog-actions">
-        <button className="secondary" onClick={onClose}>
+        <button className="secondary" disabled={busy} onClick={onClose}>
           Cancel
         </button>
-        <button className="danger" onClick={onConfirm}>
-          Delete message
+        <button
+          className="danger"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              await onConfirm();
+            } catch (err) {
+              setError(friendlyError(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? "Deleting…" : "Delete message"}
         </button>
       </div>
-    </dialog>
+    </Dialog>
   );
 }

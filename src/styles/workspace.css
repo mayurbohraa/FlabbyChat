@@ -1562,3 +1562,214 @@
     grid-template-columns: 1fr;
   }
 }
+/* A single compact conversation header leaves more room for messages. */
+body:has(.chat-app),
+#root:has(> .chat-app) {
+  height: 100dvh;
+  overflow: hidden;
+}
+.chat-app .app-body {
+  overflow: hidden;
+}
+.chat-app .chat-main {
+  min-height: 0;
+  container-type: inline-size;
+  container-name: conversation;
+}
+.chat-app .app-body .chat-header {
+  height: 62px;
+  min-height: 62px;
+  padding: 8px 18px;
+  gap: 12px;
+}
+.chat-app .chat-header .chat-title {
+  flex: 1 1 120px;
+}
+.chat-app .chat-header .chat-title h2 {
+  font-size: 15px;
+  line-height: 1.3;
+}
+.chat-app .chat-header .chat-title p {
+  margin-top: 3px;
+  max-width: none;
+  font-size: 11px;
+}
+.chat-app .chat-header .message-search {
+  flex: 0 1 230px;
+  width: 230px;
+  height: 34px;
+  margin: 0;
+}
+.chat-app .chat-header .header-actions {
+  flex-shrink: 0;
+  gap: 2px;
+}
+.chat-app .messages {
+  min-height: 0;
+  padding: 12px 18px;
+}
+.chat-app .composer {
+  padding: 8px 18px 6px;
+}
+.chat-app .composer-row {
+  gap: 7px;
+  padding: 3px 5px;
+}
+.chat-app .composer textarea {
+  min-height: 32px;
+  height: 32px;
+  max-height: 88px;
+  padding: 5px 0;
+  line-height: 22px;
+}
+.chat-app .composer .send-button {
+  min-height: 34px;
+  padding: 5px 11px;
+}
+.chat-app .composer > small {
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+@container conversation (max-width: 600px) {
+  .chat-app .app-body .chat-header {
+    height: auto;
+    min-height: 0;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 5px 8px;
+  }
+  .chat-app .chat-header .message-search {
+    order: 4;
+    flex: 1 0 100%;
+    width: 100%;
+  }
+  .chat-app .chat-header .chat-title {
+    flex: 1;
+  }
+  .chat-app .chat-title p {
+    font-size: 10px;
+  }
+}
+@media (max-width: 700px) {
+  .chat-app .messages {
+    padding: 10px 12px;
+  }
+  .chat-app .composer {
+    padding: 7px 10px;
+  }
+  .chat-app .composer > small {
+    display: none;
+  }
+  .chat-app .file-actions .icon-button,
+  .chat-app .message > .icon-button,
+  .chat-app .chat-header .icon-button,
+  .chat-app .composer .icon-button,
+  .chat-app .composer .send-button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .chat-app .chat-header .message-search {
+    height: 40px;
+  }
+  .chat-app .composer .send-button {
+    padding: 8px;
+  }
+}
+/* Dialogs share title, content and footer spacing; long text stays inside. */
+.form-dialog {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.form-dialog .dialog-heading {
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.form-dialog .dialog-heading h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.form-dialog .dialog-heading > .icon-button {
+  flex-shrink: 0;
+  margin-top: -4px;
+}
+.form-dialog .dialog-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  gap: 8px;
+}
+.form-dialog .dialog-actions > button {
+  margin: 0;
+}
+.form-dialog .discussion-body {
+  margin: 0 0 16px;
+  color: var(--ink);
+}
+.discussion-meta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12px;
+  color: var(--subtle);
+}
+.discussion-meta strong {
+  font-weight: 500;
+  color: var(--ink);
+}
+.discussion-meta time {
+  white-space: nowrap;
+}
+.form-dialog .discussion-reply {
+  border: 0;
+  padding: 12px 48px 12px 14px;
+  background: var(--neutral);
+  border-radius: 7px;
+  margin: 12px 0;
+}
+.form-dialog .discussion-reply p {
+  margin: 6px 0;
+  color: var(--ink);
+}
+.discussion-reply time {
+  color: var(--subtle);
+  font-size: 11px;
+  display: block;
+}
+.form-dialog .discussion-reply .icon-button {
+  right: 6px;
+  top: 6px;
+}
+.form-dialog .destination-folders {
+  max-height: min(36dvh, 300px);
+  overflow: auto;
+  margin-top: 12px;
+}
+@media (max-width: 700px) {
+  .form-dialog:not(.file-preview-dialog):not(.task-detail-drawer) {
+    padding: 18px;
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 24px);
+  }
+  .form-dialog .dialog-heading {
+    gap: 10px;
+  }
+  .form-dialog .discussion-reply {
+    padding-right: 54px;
+  }
+}
+img.avatar,
+img.person-initials,
+img.profile-summary-avatar,
+img.call-avatar {
+  object-fit: cover;
+}
+.call-videos > img.call-avatar {
+  width: 95px;
+  height: 95px;
+}
