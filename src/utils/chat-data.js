@@ -1,10 +1,13 @@
 // Small helpers shared by the chat screen and its tests.
+import { sampleMessages, sampleWorkspace } from "./demo-data.js";
+
 export const uid = () => crypto.randomUUID();
 
 export const demoUser = {
-  id: "mayur",
-  name: "Mayur Bohra",
-  email: "mayur@example.com",
+  id: "alex",
+  name: "Alex Morgan",
+  email: "alex@example.com",
+  bio: "Designer and project coordinator. This is a fictional demo profile.",
 };
 
 export const general = {
@@ -27,38 +30,48 @@ export function sampleChat() {
       },
     },
     users: {
-      mayur: demoUser,
-      hardik: { id: "hardik", name: "Hardik Maheshwari" },
-      khushboo: { id: "khushboo", name: "Khushboo Kolte" },
+      alex: demoUser,
+      ethan: { id: "ethan", name: "Ethan Brooks", bio: "Frontend developer" },
+      olivia: { id: "olivia", name: "Olivia Parker", bio: "Content designer" },
+      sophie: {
+        id: "sophie",
+        name: "Sophie Bennett",
+        bio: "Project researcher",
+      },
     },
     messages: {
+      ...sampleMessages(now),
       welcome: {
         id: "welcome",
         channel: "general",
-        userId: "khushboo",
-        name: "Khushboo Kolte",
+        userId: "olivia",
+        name: "Olivia Parker",
         text: "Hi everyone! We can use this channel for our project discussion.",
         createdAt: now - 3600000,
       },
       reply: {
         id: "reply",
         channel: "general",
-        userId: "hardik",
-        name: "Hardik Maheshwari",
+        userId: "ethan",
+        name: "Ethan Brooks",
         text: "Sounds good. Share your updates here.",
         createdAt: now - 1800000,
       },
     },
-    preferences: { favorites: {}, lastRead: {} },
-    presence: {},
+    ...sampleWorkspace(now),
   };
 }
 
-const key = "flabbychat.simple-demo.v1";
+// A separate version prevents the old personal-name samples resurfacing.
+// Real accounts use Firebase and never read or write this demo cache.
+const key = "flabbychat.simple-demo.v2";
 
 export function loadDemo() {
   const raw = localStorage.getItem(key);
-  return raw ? JSON.parse(raw) : sampleChat();
+  if (raw) return JSON.parse(raw);
+  const data = sampleChat();
+  localStorage.setItem(key, JSON.stringify(data));
+  return data;
 }
 
 export function saveDemo(data) {

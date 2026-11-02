@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import Chat from "../components/Chat.jsx";
+import { seedEmptyDemo } from "./demo-fixtures.js";
 import FileTransferDialog from "../components/FileTransferDialog.jsx";
 import Profile from "../components/Profile.jsx";
 import NotificationDropdown from "../components/NotificationDropdown.jsx";
@@ -28,6 +29,7 @@ vi.mock("../services/calls.js", () => ({
 
 beforeEach(() => {
   localStorage.clear();
+  seedEmptyDemo();
   HTMLDialogElement.prototype.showModal = function () {
     this.open = true;
   };
@@ -41,6 +43,42 @@ afterEach(cleanup);
 function start() {
   render(<Chat user={demoUser} demo onLogout={() => {}} />);
 }
+
+it("shows populated guest work across the dashboard and main sections", () => {
+  localStorage.clear();
+  start();
+  expect(
+    screen.getAllByText("Review the homepage outline").length,
+  ).toBeGreaterThan(0);
+  expect(
+    screen.getByRole("img", { name: /To do: 3, In progress: 3, Done: 2/ }),
+  ).toBeInTheDocument();
+  nav("Teams");
+  expect(screen.getAllByText("Olivia Parker").length).toBeGreaterThan(0);
+  nav("Workspaces");
+  expect(screen.getAllByText("Website refresh").length).toBeGreaterThan(0);
+  nav("Tasks");
+  expect(screen.getByText("Build the contact form")).toBeInTheDocument();
+  nav("Calendar");
+  expect(screen.getAllByText("Design review").length).toBeGreaterThan(0);
+  nav("Discussions");
+  expect(
+    screen.getByText("What should the homepage highlight?"),
+  ).toBeInTheDocument();
+  nav("Storage");
+  expect(screen.getByText("My project notes.pdf")).toBeInTheDocument();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Team files", exact: true }),
+  );
+  expect(screen.getByText("Studio project brief.pdf")).toBeInTheDocument();
+  nav("Chat");
+  fireEvent.click(screen.getByRole("button", { name: /Offline Ethan Brooks/ }));
+  expect(screen.getByText("Voice call · 3:00")).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Notifications"));
+  expect(
+    screen.getByRole("region", { name: "Notifications" }),
+  ).toHaveTextContent("Task assigned to you");
+});
 
 function nav(name) {
   fireEvent.click(
@@ -100,14 +138,14 @@ it("adds a registered user to a team", async () => {
   await team();
   fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
   fireEvent.change(screen.getByLabelText("Registered user"), {
-    target: { value: "hardik" },
+    target: { value: "ethan" },
   });
   fireEvent.click(
     within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
   );
   await waitFor(() =>
-    expect(Object.values(loadDemo().teams)[0].members.hardik.name).toBe(
-      "Hardik Maheshwari",
+    expect(Object.values(loadDemo().teams)[0].members.ethan.name).toBe(
+      "Ethan Brooks",
     ),
   );
 });
@@ -153,7 +191,7 @@ it("uploads to a personal library and explicitly shares the file into a chosen c
   expect(await screen.findByText("notes.pdf")).toBeInTheDocument();
   fireEvent.click(screen.getByLabelText("Share notes.pdf"));
   fireEvent.change(screen.getByLabelText("Conversation"), {
-    target: { value: "dm-hardik--mayur" },
+    target: { value: "dm-alex--ethan" },
   });
   fireEvent.click(
     screen.getByRole("button", { name: "Attach to conversation" }),
@@ -166,19 +204,19 @@ it("uploads to a personal library and explicitly shares the file into a chosen c
   ).toBeInTheDocument();
   expect(
     Object.values(loadDemo().messages).find((m) => m.attachment)?.recipient,
-  ).toBe("hardik");
+  ).toBe("ethan");
 });
 
 it("favorites a private chat and displays the email in the sidebar", async () => {
   start();
-  expect(screen.getByText("mayur@example.com")).toBeInTheDocument();
+  expect(screen.getByText("alex@example.com")).toBeInTheDocument();
   nav("Chat");
-  fireEvent.click(screen.getByLabelText("Favorite Hardik Maheshwari"));
+  fireEvent.click(screen.getByLabelText("Favorite Ethan Brooks"));
   await waitFor(() =>
-    expect(loadDemo().preferences.favorites["dm-hardik--mayur"]).toBe(true),
+    expect(loadDemo().preferences.favorites["dm-alex--ethan"]).toBe(true),
   );
   expect(
-    screen.getAllByRole("button", { name: /^(Offline|Online) Hardik/ }),
+    screen.getAllByRole("button", { name: /^(Offline|Online) Ethan/ }),
   ).toHaveLength(2);
 });
 
@@ -186,14 +224,14 @@ it("updates profile details and the selected theme", async () => {
   start();
   fireEvent.click(screen.getByLabelText("Edit profile"));
   fireEvent.change(screen.getByLabelText("Name"), {
-    target: { value: "Mayur B" },
+    target: { value: "Alex M" },
   });
   fireEvent.change(screen.getByLabelText("About you"), {
     target: { value: "College developer" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
   await waitFor(() =>
-    expect(loadDemo().users.mayur.bio).toBe("College developer"),
+    expect(loadDemo().users.alex.bio).toBe("College developer"),
   );
   nav("Settings");
   fireEvent.change(screen.getByLabelText("Theme"), {
@@ -250,14 +288,14 @@ it("uses a header search and notifications while keeping chat navigation in the 
     within(navigation).queryByRole("button", { name: "Alerts" }),
   ).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Search app"), {
-    target: { value: "Hardik" },
+    target: { value: "Ethan" },
   });
   const results = screen.getByRole("region", { name: "Search results" });
   fireEvent.click(
-    within(results).getByRole("button", { name: /Hardik Maheshwari/ }),
+    within(results).getByRole("button", { name: /Ethan Brooks/ }),
   );
   expect(
-    screen.getByRole("heading", { name: "Hardik Maheshwari" }),
+    screen.getByRole("heading", { name: "Ethan Brooks" }),
   ).toBeInTheDocument();
   expect(
     within(navigation).queryByRole("button", { name: "general" }),
@@ -292,17 +330,17 @@ it("opens mobile search below the header and dismisses it with Escape or a resul
     expect(screen.queryByLabelText("Search app")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Open search"));
     fireEvent.change(screen.getByLabelText("Search app"), {
-      target: { value: "Hardik" },
+      target: { value: "Ethan" },
     });
     fireEvent.click(
       within(screen.getByRole("region", { name: "Search results" })).getByRole(
         "button",
-        { name: /Hardik Maheshwari/ },
+        { name: /Ethan Brooks/ },
       ),
     );
     expect(screen.queryByLabelText("Search app")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Hardik Maheshwari" }),
+      screen.getByRole("heading", { name: "Ethan Brooks" }),
     ).toBeInTheDocument();
   } finally {
     cleanup();
@@ -340,7 +378,7 @@ it("hides calling controls in channels and demo private chats", () => {
     screen.queryByRole("button", { name: "Video call" }),
   ).not.toBeInTheDocument();
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   expect(
     screen.queryByRole("button", { name: "Voice call" }),
@@ -428,7 +466,7 @@ it("pauses and restores a member's team access from the member menu", async () =
   await team();
   fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
   fireEvent.change(screen.getByLabelText("Registered user"), {
-    target: { value: "hardik" },
+    target: { value: "ethan" },
   });
   fireEvent.click(
     within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
@@ -436,21 +474,17 @@ it("pauses and restores a member's team access from the member menu", async () =
   await waitFor(() =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
-  fireEvent.click(
-    screen.getByLabelText("Member options for Hardik Maheshwari"),
-  );
+  fireEvent.click(screen.getByLabelText("Member options for Ethan Brooks"));
   fireEvent.click(screen.getByRole("menuitem", { name: "Pause access" }));
   await waitFor(() =>
-    expect(Object.values(loadDemo().teams)[0].members.hardik.status).toBe(
+    expect(Object.values(loadDemo().teams)[0].members.ethan.status).toBe(
       "on hold",
     ),
   );
-  fireEvent.click(
-    screen.getByLabelText("Member options for Hardik Maheshwari"),
-  );
+  fireEvent.click(screen.getByLabelText("Member options for Ethan Brooks"));
   fireEvent.click(screen.getByRole("menuitem", { name: "Restore access" }));
   await waitFor(() =>
-    expect(Object.values(loadDemo().teams)[0].members.hardik.status).toBe(
+    expect(Object.values(loadDemo().teams)[0].members.ethan.status).toBe(
       "active",
     ),
   );
@@ -468,7 +502,7 @@ it("copies and moves file references without overwriting the original", async ()
         url: "data:application/pdf;base64,JVBERi0xLjQ=",
         size: 9,
         createdAt: 1,
-        createdBy: "mayur",
+        createdBy: "alex",
         folderId: "",
       },
     },
@@ -530,7 +564,7 @@ it("confirms ownership transfer and removes owner actions from the previous owne
   await team();
   fireEvent.click(screen.getByRole("button", { name: "Add registered user" }));
   fireEvent.change(screen.getByLabelText("Registered user"), {
-    target: { value: "hardik" },
+    target: { value: "ethan" },
   });
   fireEvent.click(
     within(screen.getByRole("dialog")).getByRole("button", { name: "Create" }),
@@ -538,28 +572,26 @@ it("confirms ownership transfer and removes owner actions from the previous owne
   await waitFor(() =>
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
   );
-  fireEvent.click(
-    screen.getByLabelText("Member options for Hardik Maheshwari"),
-  );
+  fireEvent.click(screen.getByLabelText("Member options for Ethan Brooks"));
   fireEvent.click(screen.getByRole("menuitem", { name: "Transfer ownership" }));
   expect(screen.getByRole("dialog")).toHaveTextContent(
     "You will remain a member",
   );
-  expect(Object.values(loadDemo().teams)[0].owner).toBe("mayur");
+  expect(Object.values(loadDemo().teams)[0].owner).toBe("alex");
   fireEvent.click(
     within(screen.getByRole("dialog")).getByRole("button", {
       name: "Transfer ownership",
     }),
   );
   await waitFor(() =>
-    expect(Object.values(loadDemo().teams)[0].owner).toBe("hardik"),
+    expect(Object.values(loadDemo().teams)[0].owner).toBe("ethan"),
   );
-  expect(Object.values(loadDemo().teams)[0].members.mayur).toBeDefined();
+  expect(Object.values(loadDemo().teams)[0].members.alex).toBeDefined();
   expect(
     screen.queryByRole("button", { name: "Add registered user" }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByLabelText("Member options for Hardik Maheshwari"),
+    screen.queryByLabelText("Member options for Ethan Brooks"),
   ).not.toBeInTheDocument();
 });
 
@@ -605,7 +637,7 @@ it("moves a file from My files into a team library and back without losing its U
         url: "data:application/pdf;base64,JVBERi0xLjQ=",
         size: 9,
         createdAt: 1,
-        createdBy: "mayur",
+        createdBy: "alex",
         folderId: "",
       },
     },
@@ -696,11 +728,11 @@ it("automatically saves an uploaded photo across chat, team, dashboard and reloa
   );
   expect(screen.getByRole("status")).toHaveTextContent("Profile photo saved.");
   await waitFor(() =>
-    expect(loadDemo().users.mayur.photoURL).toMatch(/^data:image\/png;base64,/),
+    expect(loadDemo().users.alex.photoURL).toMatch(/^data:image\/png;base64,/),
   );
-  const url = loadDemo().users.mayur.photoURL;
+  const url = loadDemo().users.alex.photoURL;
   await team();
-  expect(screen.getAllByRole("img", { name: "Mayur Bohra" })).toHaveLength(3);
+  expect(screen.getAllByRole("img", { name: "Alex Morgan" })).toHaveLength(3);
   nav("Chat");
   fireEvent.change(screen.getByLabelText("Message"), {
     target: { value: "Photo saved" },
@@ -709,13 +741,13 @@ it("automatically saves an uploaded photo across chat, team, dashboard and reloa
   const message = await screen.findByText("Photo saved");
   expect(
     within(message.closest("article")).getByRole("img", {
-      name: "Mayur Bohra",
+      name: "Alex Morgan",
     }),
   ).toHaveAttribute("src", url);
   cleanup();
   start();
-  expect(screen.getAllByRole("img", { name: "Mayur Bohra" })).toHaveLength(3);
-  for (const image of screen.getAllByRole("img", { name: "Mayur Bohra" }))
+  expect(screen.getAllByRole("img", { name: "Alex Morgan" })).toHaveLength(3);
+  for (const image of screen.getAllByRole("img", { name: "Alex Morgan" }))
     expect(image).toHaveAttribute("src", url);
 });
 
@@ -767,13 +799,13 @@ it("loads the persisted photo when the user directory arrives after the profile 
 
 it("automatically removes a saved profile photo and keeps the removal across reload", async () => {
   const data = loadDemo();
-  data.users.mayur.photoURL =
+  data.users.alex.photoURL =
     "https://res.cloudinary.com/demo/image/upload/saved.png";
   saveDemo(data);
   start();
   fireEvent.click(screen.getByLabelText("Edit profile"));
   fireEvent.click(screen.getByRole("button", { name: "Remove photo" }));
-  await waitFor(() => expect(loadDemo().users.mayur.photoURL).toBe(""));
+  await waitFor(() => expect(loadDemo().users.alex.photoURL).toBe(""));
   expect(screen.getByRole("status")).toHaveTextContent(
     "Profile photo removed.",
   );

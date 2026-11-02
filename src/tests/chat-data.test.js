@@ -22,11 +22,11 @@ describe("chat helpers", () => {
     expect(conversationId("a", "b")).toBe(conversationId("b", "a")));
   it("searches text and names literally, including brackets", () => {
     const messages = {
-      a: { text: "Review [draft]", name: "Hardik", createdAt: 2 },
-      b: { text: "Hello", name: "Khushboo", createdAt: 1 },
+      a: { text: "Review [draft]", name: "Ethan", createdAt: 2 },
+      b: { text: "Hello", name: "Olivia", createdAt: 1 },
     };
     expect(filterMessages(messages, "[")).toHaveLength(1);
-    expect(filterMessages(messages, "KHUSHBOO")[0].text).toBe("Hello");
+    expect(filterMessages(messages, "OLIVIA")[0].text).toBe("Hello");
   });
   it("counts unread messages from other users only", () => {
     expect(
@@ -42,9 +42,9 @@ describe("chat helpers", () => {
     ).toBe(1);
   });
   it("validates signup confirmation and password length", () => {
-    expect(validateSignup("Mayur", "12345678", "different")).toContain("match");
-    expect(validateSignup("Mayur", "short", "short")).toContain("8 characters");
-    expect(validateSignup("Mayur", "password123", "password123")).toBe("");
+    expect(validateSignup("Alex", "12345678", "different")).toContain("match");
+    expect(validateSignup("Alex", "short", "short")).toContain("8 characters");
+    expect(validateSignup("Alex", "password123", "password123")).toBe("");
   });
   it("explains authentication errors", () =>
     expect(friendlyError({ code: "auth/invalid-credential" })).toBe(

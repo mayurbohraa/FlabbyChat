@@ -11,6 +11,7 @@ import {
 import { afterEach, beforeEach, it, expect, vi } from "vitest";
 import App from "../App.jsx";
 import Auth from "../components/Auth.jsx";
+import { seedEmptyDemo } from "./demo-fixtures.js";
 import * as cloud from "../services/cloud.js";
 import * as storage from "../services/storage.js";
 
@@ -28,6 +29,7 @@ vi.mock("../services/calls.js", () => ({
 
 beforeEach(() => {
   localStorage.clear();
+  seedEmptyDemo();
   HTMLDialogElement.prototype.showModal = function () {
     this.open = true;
   };
@@ -129,7 +131,7 @@ it("creates a channel and adds it to favorites", async () => {
 it("keeps private messages out of a group channel", async () => {
   demo();
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   fireEvent.change(screen.getByLabelText("Message"), {
     target: { value: "Private project note" },
@@ -220,7 +222,7 @@ it("restores each chat’s text and attachment draft separately", async () => {
   });
   expect(await screen.findByText("group.pdf")).toBeInTheDocument();
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   expect(screen.getByLabelText("Message")).toHaveValue("");
   expect(screen.queryByText("group.pdf")).not.toBeInTheDocument();
@@ -235,7 +237,7 @@ it("restores each chat’s text and attachment draft separately", async () => {
     await screen.findByRole("button", { name: "Preview group.pdf" }),
   ).toBeInTheDocument();
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   expect(screen.getByLabelText("Message")).toHaveValue("A private note");
   expect(screen.queryByText("group.pdf")).not.toBeInTheDocument();
@@ -263,7 +265,7 @@ it("keeps an upload in its originating chat when conversations change", async ()
     },
   });
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   await act(async () =>
     completeUpload({
@@ -291,13 +293,13 @@ it("replies within the selected conversation and deletes own messages from the m
     }),
   );
   fireEvent.click(screen.getByRole("menuitem", { name: "Reply" }));
-  expect(screen.getByText(/Replying to Mayur/)).toBeInTheDocument();
+  expect(screen.getByText(/Replying to Alex/)).toBeInTheDocument();
   fireEvent.click(
-    screen.getByRole("button", { name: /^(Offline|Online) Hardik Maheshwari/ }),
+    screen.getByRole("button", { name: /^(Offline|Online) Ethan Brooks/ }),
   );
   expect(screen.queryByText(/Replying to/)).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "general", exact: true }));
-  expect(screen.getByText(/Replying to Mayur/)).toBeInTheDocument();
+  expect(screen.getByText(/Replying to Alex/)).toBeInTheDocument();
   fireEvent.change(screen.getByLabelText("Message"), {
     target: { value: "I will review it" },
   });
