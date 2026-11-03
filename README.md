@@ -124,6 +124,19 @@ FlabbyChat_Code/             Application repository
 
 Private technical documents, portfolio content, visuals and college submissions are maintained in sibling folders outside this repository.
 
+The complete local workspace is organized as follows; only `FlabbyChat_Code/` is the Git repository:
+
+```text
+FlabbyChat/
+├── FlabbyChat_Code/                 Application and public README
+├── FlabbyChat_Docs/                 Private documentation
+│   ├── PROJECT_DETAILS.md
+│   └── CASE_STUDY.md
+├── FlabbyChat_Visuals/              Existing poster and video
+└── FlabbyChat_College_Documents/    College major-project submissions
+    └── Research_Certificates/
+```
+
 ## Deployment notes
 
 Vercel configuration uses Vite, `npm run build` and output directory `build`. Add the environment values in the hosting project before building; redeploy after changing them. Firebase Hosting configuration also targets `build/`. Publish current database rules separately when required and authorize the deployed hostname in Firebase Authentication.
