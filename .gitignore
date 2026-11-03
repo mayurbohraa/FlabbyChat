@@ -27,6 +27,7 @@ coverage/
 # Keep private material out if copied back into this repository.
 /FlabbyChat_Docs/
 /FlabbyChat_Visuals/
+/FlabbyChat_Assets/
 /FlabbyChat_College_Documents/
 
 # Editor, OS and temporary files
