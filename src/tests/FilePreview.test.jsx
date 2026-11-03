@@ -1,12 +1,6 @@
 import React from "react";
 import { Blob as NodeBlob } from "node:buffer";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  cleanup,
-} from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { beforeEach, afterEach, it, expect, vi } from "vitest";
 import FilePreview from "../components/FilePreview.jsx";
 

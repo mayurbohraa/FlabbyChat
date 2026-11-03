@@ -25,11 +25,7 @@ import TaskBoard from "./TaskBoard.jsx";
 import CalendarPanel from "./CalendarPanel.jsx";
 import Dashboard from "./Dashboard.jsx";
 import { formatTime } from "../utils/time.js";
-
-const localDate = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
+import { dateKey } from "../utils/calendar.js";
 
 export default function Collaboration({
   view,
@@ -49,7 +45,7 @@ export default function Collaboration({
   onNotice,
 }) {
   const [transfer, setTransfer] = useState(null);
-  const [calendarDate, setCalendarDate] = useState(localDate());
+  const [calendarDate, setCalendarDate] = useState(dateKey(new Date()));
   const [dialog, setDialog] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -1352,7 +1348,7 @@ export default function Collaboration({
                         type="date"
                         name="due"
                         required
-                        defaultValue={dialog.item?.due || localDate()}
+                        defaultValue={dialog.item?.due || dateKey(new Date())}
                       />
                     </label>
                     <label>
@@ -1389,7 +1385,7 @@ export default function Collaboration({
                         name="date"
                         type="date"
                         required
-                        defaultValue={dialog.item?.date || localDate()}
+                        defaultValue={dialog.item?.date || dateKey(new Date())}
                       />
                     </label>
                     <label>

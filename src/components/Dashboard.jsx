@@ -1,8 +1,8 @@
-import { formatTime } from "../utils/time.js";
-import Avatar from "./Avatar.jsx";
 import React, { useState } from "react";
+import Avatar from "./Avatar.jsx";
 import { MiniCalendar } from "./CalendarPanel.jsx";
 import { dateKey } from "../utils/calendar.js";
+import { formatTime } from "../utils/time.js";
 
 export default function Dashboard({
   timeFormat,

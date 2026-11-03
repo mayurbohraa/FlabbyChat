@@ -21,6 +21,13 @@ coverage/
 
 # Supporting documentation (local only)
 /docs/local/
+/docs/PROJECT_DETAILS.md
+/docs/CASE_STUDY.md
+
+# Keep private material out if copied back into this repository.
+/FlabbyChat_Docs/
+/FlabbyChat_Visuals/
+/FlabbyChat_College_Documents/
 
 # Editor, OS and temporary files
 .vscode/

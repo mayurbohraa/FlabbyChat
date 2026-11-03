@@ -23,7 +23,6 @@ import {
   remove,
   onDisconnect,
   runTransaction,
-  serverTimestamp,
 } from "firebase/database";
 import { general, uid } from "../utils/chat-data.js";
 
@@ -464,8 +463,9 @@ export function watchTeams(userId, callback, error) {
     path("teamIndex/" + userId),
     (snapshot) => {
       const ids = Object.keys(snapshot.val() || {});
+      const activeIds = new Set(ids);
       for (const id of Object.keys(stops)) {
-        if (!ids.includes(id)) {
+        if (!activeIds.has(id)) {
           stops[id]();
           delete stops[id];
           delete teams[id];

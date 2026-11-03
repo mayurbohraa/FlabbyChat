@@ -47,5 +47,22 @@ export function callSummary(call) {
     const seconds = Math.round(call.duration);
     return `${type} · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   }
-  return `${type} · ${call.outcome === "completed" ? "Ended" : call.outcome === "missed" ? "Missed" : call.outcome === "declined" ? "Declined" : call.outcome === "cancelled" ? "Cancelled" : call.outcome || "Ended"}`;
+  let outcome;
+  switch (call.outcome) {
+    case "completed":
+      outcome = "Ended";
+      break;
+    case "missed":
+      outcome = "Missed";
+      break;
+    case "declined":
+      outcome = "Declined";
+      break;
+    case "cancelled":
+      outcome = "Cancelled";
+      break;
+    default:
+      outcome = call.outcome || "Ended";
+  }
+  return `${type} · ${outcome}`;
 }

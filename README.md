@@ -2,44 +2,52 @@
 
 Chat, calls and project collaboration for student teams.
 
-## Overview
+## About
 
-FlabbyChat is my college major project, bringing conversations, assigned tasks, schedules and shared documents into one application. I worked on project planning, research, full-stack development, UI design and the original FlabbyChat logo.
+FlabbyChat is my **college major project**, bringing real-time conversations, private calls, tasks, schedules and project documents into one responsive application. My confirmed work includes project planning, research, full-stack development, UI design direction and the original logo.
 
-The app provides a common workspace for student teams, with real-time updates, a dashboard and light/dark themes. A browser-only demo is available for exploring the interface without setting up cloud services.
+The guest demo is populated with fictional people, teams and work, so visitors can explore the application without configuring cloud services. Real accounts use Firebase and stay separate from demo data.
 
 ## Key features
 
-- **Accounts and profiles:** Email/password signup and login, email verification, password reset, profile editing and automatically saved profile photos.
-- **Chat:** Channels and private conversations with search, replies, favorites, message deletion, image/PDF attachments and online/offline status.
-- **Calls:** One-to-one voice/video calls with calling sounds, mute/camera controls and timestamped call history with outcomes and duration.
-- **Project work:** Teams, project workspaces, assigned tasks, deadlines, priorities, status tracking, task CSV export, four calendar views and discussion boards.
-- **Document libraries:** Personal and team folders with search, upload, in-app previews, downloads, chat sharing and copy/move between libraries.
-- **Dashboard and preferences:** Task-progress and team-workload charts, upcoming work, notification dropdowns, optional browser notifications, themes, message alignment and a 12/24-hour clock.
+- **Accounts:** Email/password signup and login, email verification, password reset, profile editing and automatically saved photos.
+- **Communication:** Shared channels, private chats, replies, favorites, search, own-message deletion, image/PDF attachments and visible-session presence.
+- **Calls:** Private voice/video calling, ringing, media controls and outcome/duration history.
+- **Project work:** Teams, ownership management, project workspaces, assigned tasks, CSV export, four calendar views and discussions.
+- **Files:** Personal/team libraries, folders, previews, downloads, chat sharing and copy/move between libraries.
+- **Overview and preferences:** Dashboard charts, upcoming work, notifications, themes, message alignment and a 12/24-hour clock.
 
-## Technologies
+## Live website
 
-| Area                          | Technologies                                  |
-| ----------------------------- | --------------------------------------------- |
-| Frontend                      | React 19, Vite 7, CSS and Lucide icons        |
-| Accounts and live data        | Firebase Authentication and Realtime Database |
-| Uploads and document previews | Cloudinary Upload API and PDF.js              |
-| Calls                         | WebRTC with Firebase signaling                |
-| Testing                       | Vitest, React Testing Library and jsdom       |
+**[Open FlabbyChat](https://flabby-chat.vercel.app/)**
 
-## Prerequisites and installation
+## Tech stack
 
-Install **Node.js 24 with npm** and **Git**. Other supported Node versions are listed in [package.json](package.json).
+| Area                     | Technologies                                      |
+| ------------------------ | ------------------------------------------------- |
+| Frontend                 | JavaScript, React 19, Vite 7, CSS, Lucide icons   |
+| Accounts and persistence | Firebase Authentication and Realtime Database     |
+| Uploads and previews     | Cloudinary Upload API and PDF.js                  |
+| Calls                    | WebRTC with Firebase signaling                    |
+| Testing                  | Vitest, React Testing Library, jest-dom and jsdom |
+
+## Prerequisites
+
+- Node.js 24 with npm. Other accepted versions are specified in package.json.
+- Firebase project for real accounts and shared data.
+- Cloudinary account for PDFs and images up to 5 MB.
+
+Cloud setup is optional for the browser-only guest demo.
+
+## Installation and environment setup
+
+Open a terminal in the application repository. In this local workspace it is `FlabbyChat_Code/`.
 
 ```sh
-git clone https://github.com/mayurbohraa/FlabbyChat.git
-cd FlabbyChat
 npm ci
 ```
 
-## Environment configuration
-
-Copy [.env.example](.env.example) to `.env.local` in the project root, then fill in the values from your own service accounts:
+Copy `.env.example` to `.env.local` in that folder and fill in your public client configuration:
 
 ```env
 VITE_FIREBASE_API_KEY=your_firebase_api_key
@@ -47,85 +55,79 @@ VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_DATABASE_URL=your_realtime_database_url
 VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_APP_ID=your_web_app_id
-
 VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
-VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_preset
+VITE_CLOUDINARY_UPLOAD_PRESET=your_unsigned_upload_preset
 ```
-
-Firebase is required for real accounts and shared data. Configure Cloudinary for PDF uploads and images up to 5 MB. Without Cloudinary, signed-in uploads are limited to small images; demo files are limited to 250 KB.
-
-`.env.local` is ignored by Git. Use Firebase's Web app configuration here, not administrator credentials. Never put service-account keys or Cloudinary API secrets in `VITE_` variables.
 
 ### Firebase
 
-1. Create or select a project in Firebase Console and [register a Web app](https://firebase.google.com/docs/web/setup).
-2. Enable [Email/Password authentication](https://firebase.google.com/docs/auth/web/password-auth).
-3. Create a [Realtime Database](https://firebase.google.com/docs/database/web/start) and copy its exact URL into `VITE_FIREBASE_DATABASE_URL`.
-4. Publish the complete [database.rules.json](database.rules.json) under Realtime Database > Rules.
-5. Copy `apiKey`, `authDomain`, `projectId` and `appId` from the Web app configuration into the matching environment variables. Add the appropriate local/deployed hostnames to Authentication's authorized domains when needed.
+1. Register a Web app in Firebase Console and copy its configuration into the matching variables.
+2. Enable Email/Password under Authentication.
+3. Create a Realtime Database and use its exact database URL.
+4. Publish the complete `database.rules.json` under Realtime Database → Rules.
+5. Configure Authentication's authorized domains for the local/deployed hostname when needed. Test verification and reset email delivery.
+
+Sign up and verify your email before entering the cloud workspace. Updating a local rules file does not publish it to Firebase.
 
 ### Cloudinary
 
-1. Copy your Cloudinary **Cloud name** into `VITE_CLOUDINARY_CLOUD_NAME`.
-2. Create an [unsigned upload preset](https://cloudinary.com/documentation/upload_presets) in Console Settings > Upload > Upload Presets. Set its name as `VITE_CLOUDINARY_UPLOAD_PRESET`.
-3. Restrict allowed formats to `jpg,jpeg,png,webp,gif,pdf`.
-4. For PDFs, enable **Allow delivery of PDF and ZIP files** in Console Settings > Security. See [PDF delivery setup](https://cloudinary.com/documentation/pdf_optimization).
+1. Copy the Cloud name from your account into the environment file.
+2. Create an unsigned upload preset in Settings → Upload → Upload Presets.
+3. Restrict allowed formats to `jpg,jpeg,png,webp,gif,pdf`, and apply provider-side size restrictions where available. The app checks a 5 MB limit.
+4. Enable PDF delivery in Settings → Security if the account blocks it.
 
-The app checks a 5 MB cloud-upload limit. Cloudinary delivery links can be opened by anyone who has the URL; library permissions protect metadata, not those public links. An upload server, Firebase Storage and S3 are not required by this implementation.
+Cloudinary links are accessible to anyone holding the URL; library permissions protect metadata rather than asset delivery. Without Cloudinary, signed-in uploads support images up to 250 KB. Demo images/PDFs are local and limited to 250 KB. Firebase Storage, S3 and an upload server are not used.
 
-## Run locally
+`.env.local` is ignored. VITE_ values are bundled into the client: never include service-account credentials, administrator keys or Cloudinary API secrets.
+
+## Run, build and test
 
 ```sh
 npm start
 ```
 
-Open the URL printed by Vite, normally `http://127.0.0.1:5173`. Restart the server after changing `.env.local`.
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. Restart the server after environment changes. Choose **Try demo without an account** to explore the populated guest workspace; demo edits stay in that browser and real calls are disabled.
 
-For real accounts, sign up and verify your email before entering the app. To explore without cloud configuration, select **Try demo without an account**. Demo data stays in the browser; demo mode does not connect real calls or upload cloud files.
+| Command           | Purpose                                    |
+| ----------------- | ------------------------------------------ |
+| `npm start`       | Start development server                   |
+| `npm run dev`     | Alternative development command            |
+| `npm test`        | Run automated tests                        |
+| `npm run build`   | Generate production assets in build/       |
+| `npm run preview` | Serve an existing production build locally |
 
-## Development, build and test commands
-
-| Command           | Purpose                                           |
-| ----------------- | ------------------------------------------------- |
-| `npm start`       | Start the local development server                |
-| `npm run dev`     | Alternative development-server command            |
-| `npm test`        | Run the automated test suite                      |
-| `npm run build`   | Generate production assets in `build/`            |
-| `npm run preview` | Serve the production build locally after building |
+There are no configured lint or TypeScript-check scripts.
 
 ## Project structure
 
 ```text
-FlabbyChat/
-├── public/                Favicon and crawler instructions
+FlabbyChat_Code/             Application repository
+├── public/                 Favicon and crawler instructions
 ├── src/
-│   ├── assets/            Original logo and ringtone
-│   ├── components/        Screens, charts, dialogs and shared controls
-│   ├── hooks/             Team and library subscriptions
-│   ├── services/          Firebase, uploads and call signaling
-│   ├── styles/            Layout and theme styles
-│   ├── tests/             Automated tests and setup
-│   ├── utils/             Data, date/time, CSV and theme helpers
-│   ├── App.jsx            Authentication gate and app entry
-│   └── main.jsx           React bootstrap and stylesheet imports
-├── .env.example           Frontend configuration template
-├── database.rules.json    Realtime Database permissions and validation
-├── firebase.json          Firebase Hosting and rules configuration
-├── vercel.json            Vercel build configuration
-├── vite.config.js         Development, build and test configuration
-├── package.json           Dependencies and commands
-├── package-lock.json      Locked dependency versions
-└── README.md
+│   ├── assets/             Original logo and ringtone
+│   ├── components/         Screens, dialogs and shared UI
+│   ├── hooks/              Team/library subscriptions
+│   ├── services/           Firebase, uploads and calls
+│   ├── styles/             Layout and theme CSS
+│   ├── tests/              Automated tests and fixtures
+│   ├── utils/              Data, demo, date/time and export helpers
+│   ├── App.jsx
+│   └── main.jsx
+├── .env.example
+├── database.rules.json
+├── firebase.json
+├── vercel.json
+├── vite.config.js
+├── package.json
+└── package-lock.json
 ```
 
-## Deployment and links
+Private technical documents, portfolio content, visuals and college submissions are maintained in sibling folders outside this repository.
 
-For Vercel, import the repository as a Vite project. [vercel.json](vercel.json) sets `npm run build` as the build command and `build` as the output directory. Add the environment variables above to the Vercel project before deployment; local environment files are not uploaded. Redeploy after changing their values.
+## Deployment notes
 
-Firebase Hosting configuration is also included in [firebase.json](firebase.json). Publish the current database rules separately when required, and authorize the deployed hostname in Firebase Authentication.
+Vercel configuration uses Vite, `npm run build` and output directory `build`. Add the environment values in the hosting project before building; redeploy after changing them. Firebase Hosting configuration also targets `build/`. Publish current database rules separately when required and authorize the deployed hostname in Firebase Authentication.
 
-Calls require HTTPS or localhost, microphone/camera permission and an open app. The current call configuration uses STUN; restrictive networks may need a TURN relay. Browser notifications also require an open app and permission.
+Calls require HTTPS or localhost, device permissions and an open app. STUN is configured; restrictive networks may need TURN. Browser notifications also need an open app and permission.
 
-**Live demo: [https://flabby-chat.vercel.app/](https://flabby-chat.vercel.app/)**
-
-**Source: [github.com/mayurbohraa/FlabbyChat](https://github.com/mayurbohraa/FlabbyChat)**
+**Live application: [flabby-chat.vercel.app](https://flabby-chat.vercel.app/)**
