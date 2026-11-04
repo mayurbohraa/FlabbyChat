@@ -19,6 +19,10 @@ FlabbyChat is my college major project. It brings team conversations, calls, tas
 
 [flabby-chat.vercel.app](https://flabby-chat.vercel.app/)
 
+## Source Repository
+
+[View source on GitHub](https://github.com/mayurbohraa/flabbychat)
+
 ## Tech Stack
 
 - **Frontend:** React, JavaScript, Vite, CSS and Lucide icons.
