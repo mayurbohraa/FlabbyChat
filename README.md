@@ -88,10 +88,3 @@ src/
 database.rules.json   # Realtime Database access rules
 .env.example          # Public configuration template
 ```
-
-## My Contributions
-
-- Planned and developed the complete application.
-- Designed the user interface and project logo.
-- Implemented the frontend, backend functionality, and service integrations.
-- Managed implementation and deployed the application on Vercel.
