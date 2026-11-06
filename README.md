@@ -1,14 +1,14 @@
 # FlabbyChat
 
-## Project Overview
+## Overview
 
 FlabbyChat brings team conversations, voice/video calls, projects, tasks, calendars, and shared files into one workspace. It supports authenticated cloud accounts and a guest demo with browser-local sample data.
 
 ## Project Preview
 
-<img src="public/project-preview.webp" alt="FlabbyChat application screens and visual identity" width="520">
+<img src="public/project-preview.webp" alt="FlabbyChat application screens and visual identity" width="100%">
 
-Application screens and visual identity. Branding mockups are presentation concepts.
+Application preview.
 
 ## Key Features
 
